@@ -129,13 +129,13 @@ prefer (and pay for). Suggested ones:
 
 | Agent | `-a` | Install |
 |---|---|---|
-| Claude Code | `claude` | `npm i -g @anthropic-ai/claude-code` |
+| Claude Code | `claude` | `npm i -g @anthropic-ai/claude-code` · `curl -fsSL https://claude.ai/install.sh \| sh` |
 | OpenAI Codex | `codex` | `brew install --cask codex` · `npm i -g @openai/codex` |
 | Gemini CLI | `gemini` | `brew install gemini-cli` · `npm i -g @google/gemini-cli` |
 | opencode | `opencode` | `brew install opencode` · `npm i -g opencode-ai` |
 | aider | `aider` | `brew install aider` · `pipx install aider-chat` |
 | goose | `goose` | `brew install block-goose-cli` |
-| Antigravity | `agy` | (official installer) |
+| Antigravity | `agy` | `curl -fsSL https://antigravity.google/cli/install.sh \| sh` |
 
 ```sh
 divvy -a codex          # OpenAI Codex

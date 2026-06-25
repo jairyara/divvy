@@ -12,7 +12,9 @@
 # It tries your system package manager first (brew, apt, dnf, pacman, zypper, apk).
 # If a tool isn't packaged for your system, it downloads the official prebuilt
 # binary into ~/.local/bin so you don't have to install anything by hand.
-set -e
+#
+# No 'set -e' on purpose: the installer reports each error and keeps going,
+# so one tool failing never stops the rest from installing.
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 BINDIR="${BINDIR:-$HOME/.local/bin}"
@@ -45,7 +47,7 @@ INTERACTIVE=1
 while [ $# -gt 0 ]; do
     case "$1" in
         --all)      SEL_EDITORS="nvim helix micro vim"; WANT_GHOSTTY=1; WANT_FONT=1;
-                    SEL_AGENTS="codex gemini opencode aider goose"; INTERACTIVE=0; shift ;;
+                    SEL_AGENTS="claude codex gemini opencode aider goose agy"; INTERACTIVE=0; shift ;;
         --minimal)  SEL_EDITORS="nvim"; WANT_GHOSTTY=0; WANT_FONT=0; SEL_AGENTS=""; INTERACTIVE=0; shift ;;
         --editors)  SEL_EDITORS="$2"; INTERACTIVE=0; shift 2 ;;
         --agents)   SEL_AGENTS="$2"; INTERACTIVE=0; shift 2 ;;
@@ -91,8 +93,13 @@ pm_install() {
     esac
 }
 
-# Make sure a helper tool (tar, unzip, xz…) is present; install it quietly if not.
-need() { have "$1" || pm_install "$1" >/dev/null 2>&1 || warn "missing '$1' — install it and re-run"; }
+# Make sure a helper tool (tar, unzip, xz…) is present; install it via the PM if not.
+need() {
+    have "$1" && return 0
+    say "Installing '$1' (needed to unpack downloads)…"
+    pm_install "$1" || warn "couldn't install '$1' automatically — install it and re-run"
+    have "$1"
+}
 
 # Download a URL to a file using curl or wget, whichever exists.
 fetch() {
@@ -188,72 +195,96 @@ ask_yn() {
     case "$_a" in y|Y|yes|s|S|si) return 0 ;; *) return 1 ;; esac
 }
 
+# ─────────────── download helper ───────────────
+# Download a GitHub release archive and install one or more binaries into BINDIR.
+# Tries hard to explain *why* it failed instead of silently giving up.
+#   dl_gh <repo> <asset-substring> <tgz|txz|zip> <bin> [extra-bins...]
+# The first <bin> is required; any extras are best-effort.
+dl_gh() {
+    _repo=$1; _pat=$2; _kind=$3; shift 3; _primary=$1
+    _u=$(gh_asset "$_repo" "$_pat")
+    if [ -z "$_u" ]; then warn "$_repo: no release asset matched '$_pat' (arch=$ARCH)"; return 1; fi
+    _t=$(mktemp -d) || return 1
+    if ! fetch "$_u" "$_t/archive"; then warn "download failed: $_u"; rm -rf "$_t"; return 1; fi
+    case "$_kind" in
+        tgz) need tar          && tar -xzf "$_t/archive" -C "$_t" ;;
+        txz) need tar && need xz && tar -xJf "$_t/archive" -C "$_t" ;;
+        zip) need unzip        && unzip -q "$_t/archive" -d "$_t" ;;
+    esac
+    if [ $? -ne 0 ]; then warn "could not extract $_u"; rm -rf "$_t"; return 1; fi
+    mkdir -p "$BINDIR"; _missing=0
+    for _b in "$@"; do
+        _f=$(find "$_t" -type f -name "$_b" 2>/dev/null | head -1)
+        if [ -n "$_f" ]; then install -m 0755 "$_f" "$BINDIR/$_b"
+        elif [ "$_b" = "$_primary" ]; then _missing=1; fi
+    done
+    rm -rf "$_t"
+    [ "$_missing" = 0 ] || { warn "$_repo: binary '$_primary' not found inside the archive"; return 1; }
+    return 0
+}
+
 # ─────────────── per-tool installers ───────────────
-# Each function installs one tool. It tries the package manager first, then a
-# prebuilt binary download as a fallback. Returns 0 on success.
+# Each function tries the package manager first, then a prebuilt binary download
+# (the reliable cross-distro path). Returns 0 on success.
 
 install_zellij() {
     case "$PM" in brew|pacman) pm_install zellij && return 0 ;; esac
-    have cargo && { say "Building zellij with cargo (this can take a while)…"; cargo install zellij && return 0; }
-    need tar
-    _u=$(gh_asset zellij-org/zellij "zellij-$ARCH-unknown-linux-musl.tar.gz")
-    [ -n "$_u" ] || return 1
-    _t=$(mktemp -d); fetch "$_u" "$_t/z.tgz" && tar -xzf "$_t/z.tgz" -C "$_t" || { rm -rf "$_t"; return 1; }
-    mkdir -p "$BINDIR"; install -m 0755 "$_t/zellij" "$BINDIR/zellij"; rm -rf "$_t"
+    dl_gh zellij-org/zellij "zellij-$ARCH-unknown-linux-musl.tar.gz" tgz zellij
 }
 
 install_yazi() {
     case "$PM" in brew|pacman) pm_install yazi && return 0 ;; esac
-    have cargo && { say "Building yazi with cargo (this can take a while)…"; cargo install --locked yazi-fm yazi-cli && return 0; }
-    need unzip
-    _u=$(gh_asset sxyazi/yazi "yazi-$ARCH-unknown-linux-musl.zip")
-    [ -n "$_u" ] || return 1
-    _t=$(mktemp -d); fetch "$_u" "$_t/y.zip" && unzip -q "$_t/y.zip" -d "$_t" || { rm -rf "$_t"; return 1; }
-    _d=$(find "$_t" -maxdepth 1 -type d -name 'yazi-*' | head -1)
-    mkdir -p "$BINDIR"
-    install -m 0755 "$_d/yazi" "$BINDIR/yazi"
-    [ -f "$_d/ya" ] && install -m 0755 "$_d/ya" "$BINDIR/ya"
-    rm -rf "$_t"
+    dl_gh sxyazi/yazi "yazi-$ARCH-unknown-linux-musl.zip" zip yazi ya
 }
 
 install_helix() {
     case "$PM" in brew|pacman) pm_install helix && return 0 ;; esac
-    need tar; need xz
+    # Helix needs its runtime dir, so we can't use the generic single-binary helper.
     _u=$(gh_asset helix-editor/helix "$ARCH-linux.tar.xz")
-    [ -n "$_u" ] || return 1
-    _t=$(mktemp -d); fetch "$_u" "$_t/h.txz" && tar -xJf "$_t/h.txz" -C "$_t" || { rm -rf "$_t"; return 1; }
+    if [ -z "$_u" ]; then warn "helix: no linux asset matched (arch=$ARCH)"; return 1; fi
+    _t=$(mktemp -d) || return 1
+    fetch "$_u" "$_t/h.txz" || { warn "download failed: $_u"; rm -rf "$_t"; return 1; }
+    need tar && need xz && tar -xJf "$_t/h.txz" -C "$_t" || { warn "could not extract helix"; rm -rf "$_t"; return 1; }
     _d=$(find "$_t" -maxdepth 1 -type d -name 'helix-*' | head -1)
+    [ -n "$_d" ] || { warn "helix archive layout unexpected"; rm -rf "$_t"; return 1; }
     mkdir -p "$BINDIR"; install -m 0755 "$_d/hx" "$BINDIR/hx"
-    # Helix needs its runtime directory next to the binary or in ~/.config/helix.
     mkdir -p "$HOME/.config/helix"; rm -rf "$HOME/.config/helix/runtime"
     cp -r "$_d/runtime" "$HOME/.config/helix/runtime"
-    rm -rf "$_t"
+    rm -rf "$_t"; return 0
 }
 
 install_nvim() {
     case "$PM" in brew) pm_install neovim && return 0 ;; esac
-    need tar
+    # Distro neovim is often too old for our config, so prefer the official binary.
     case "$ARCH" in x86_64) _a=linux-x86_64 ;; aarch64) _a=linux-arm64 ;; *) _a=linux64 ;; esac
     _u=""
     for _pat in "nvim-$_a.tar.gz" "nvim-linux64.tar.gz"; do
         _u=$(gh_asset neovim/neovim "$_pat"); [ -n "$_u" ] && break
     done
     if [ -n "$_u" ]; then
-        _t=$(mktemp -d); fetch "$_u" "$_t/n.tgz" && tar -xzf "$_t/n.tgz" -C "$_t" || { rm -rf "$_t"; return 1; }
+        _t=$(mktemp -d) || return 1
+        fetch "$_u" "$_t/n.tgz" || { warn "download failed: $_u"; rm -rf "$_t"; return 1; }
+        need tar && tar -xzf "$_t/n.tgz" -C "$_t" || { warn "could not extract neovim"; rm -rf "$_t"; return 1; }
         _d=$(find "$_t" -maxdepth 1 -type d -name 'nvim-*' | head -1)
-        rm -rf "$HOME/.local/share/divvy-nvim"; mkdir -p "$HOME/.local/share"
-        cp -r "$_d" "$HOME/.local/share/divvy-nvim"
-        mkdir -p "$BINDIR"; ln -sf "$HOME/.local/share/divvy-nvim/bin/nvim" "$BINDIR/nvim"
-        rm -rf "$_t"; return 0
+        if [ -n "$_d" ]; then
+            rm -rf "$HOME/.local/share/divvy-nvim"; mkdir -p "$HOME/.local/share"
+            cp -r "$_d" "$HOME/.local/share/divvy-nvim"
+            mkdir -p "$BINDIR"; ln -sf "$HOME/.local/share/divvy-nvim/bin/nvim" "$BINDIR/nvim"
+            rm -rf "$_t"; return 0
+        fi
+        rm -rf "$_t"
     fi
-    pm_install neovim   # distro package as last resort (may be older)
+    warn "Falling back to the distro neovim (may be older than our config needs)."
+    pm_install neovim
 }
 
 install_micro() {
     case "$PM" in brew) pm_install micro && return 0 ;; esac
-    say "Installing micro via its official script…"
     mkdir -p "$BINDIR"
-    ( cd "$BINDIR" && { have curl && curl -fsSL https://getmic.ro | sh || { have wget && wget -qO- https://getmic.ro | sh; }; } )
+    say "Installing micro via its official script…"
+    if   have curl; then ( cd "$BINDIR" && curl -fsSL https://getmic.ro | sh ) && return 0
+    elif have wget; then ( cd "$BINDIR" && wget -qO- https://getmic.ro | sh ) && return 0
+    else warn "micro: need curl or wget to install"; return 1; fi
 }
 
 install_vim() { pm_install vim; }
@@ -282,6 +313,11 @@ install_font() {
 
 install_agent() {
     case "$1" in
+        claude)
+            have npm  && { npm install -g @anthropic-ai/claude-code && return 0; }
+            have curl && { curl -fsSL https://claude.ai/install.sh | sh && return 0; }
+            have wget && { wget -qO- https://claude.ai/install.sh | sh && return 0; }
+            warn "claude: install with 'npm install -g @anthropic-ai/claude-code' (needs Node.js)"; return 1 ;;
         codex)
             [ "$PM" = brew ] && { brew install --cask codex && return 0; }
             have npm && { npm install -g @openai/codex && return 0; }
@@ -302,6 +338,10 @@ install_agent() {
         goose)
             [ "$PM" = brew ] && { brew install block-goose-cli && return 0; }
             warn "goose: see https://block.github.io/goose/ to install"; return 1 ;;
+        agy|antigravity)
+            have curl && { curl -fsSL https://antigravity.google/cli/install.sh | sh && return 0; }
+            have wget && { wget -qO- https://antigravity.google/cli/install.sh | sh && return 0; }
+            warn "agy: install with 'curl -fsSL https://antigravity.google/cli/install.sh | sh'"; return 1 ;;
     esac
 }
 
@@ -330,9 +370,9 @@ if [ "$INTERACTIVE" = 1 ]; then
     ask_yn "Install Ghostty (a fast terminal with true color, recommended)?" n && WANT_GHOSTTY=1 || WANT_GHOSTTY=0
     ask_yn "Install JetBrainsMono Nerd Font (needed for icons)?" y && WANT_FONT=1 || WANT_FONT=0
     echo
-    echo "AI agents — the right-hand pane. 'claude' and 'agy' install separately with your account."
+    echo "AI agents — the right-hand pane. claude is divvy's default; 'agy' is Google Antigravity."
     multiselect "AI agents  —  space to toggle · ↑/↓ to move · Enter to confirm" \
-        SEL_AGENTS "codex gemini opencode aider goose" ""
+        SEL_AGENTS "claude codex gemini opencode aider goose agy" "claude"
 fi
 [ "$WANT_GHOSTTY" = ask ] && WANT_GHOSTTY=0
 [ "$WANT_FONT" = ask ] && WANT_FONT=1
@@ -345,15 +385,24 @@ echo "  ghostty:  $([ "$WANT_GHOSTTY" = 1 ] && echo yes || echo no)"
 echo "  font:     $([ "$WANT_FONT" = 1 ] && echo yes || echo no)"
 echo "  agents:   ${SEL_AGENTS:-(none)}"
 echo "  symlinks: $BINDIR"
+echo "  system:   $OS / $ARCH"
 echo "  manager:  $PM"
+echo "  download: $(have curl && echo curl || { have wget && echo wget || echo '(none — install curl)'; })"
 [ "$DRY_RUN" = 1 ] && warn "DRY-RUN: nothing will actually be installed."
 if [ "$DRY_RUN" = 0 ] && [ "$ASSUME_YES" = 0 ] && [ "$INTERACTIVE" = 1 ]; then
     ask_yn "Continue?" y || { echo "Cancelled."; exit 0; }
 fi
 
-if [ "$PM" = none ] && ! have curl && ! have wget; then
-    warn "No package manager and no curl/wget found — automatic install won't work."
-    info "Install 'curl' (or Homebrew on macOS) and re-run."
+# ─────────────── bootstrap prerequisites ───────────────
+# A fresh distro may lack curl/wget (needed to download tools). Get one via the PM.
+if [ "$DRY_RUN" = 0 ] && ! have curl && ! have wget; then
+    if [ "$PM" = none ]; then
+        warn "No package manager and no curl/wget found — automatic install can't proceed."
+        info "Install 'curl' (or Homebrew on macOS) and re-run."
+    else
+        say "Installing curl (required to download tools)…"
+        pm_install curl ca-certificates || pm_install curl || warn "couldn't install curl — install it and re-run"
+    fi
 fi
 
 # ─────────────── install: core ───────────────
@@ -390,12 +439,10 @@ if [ -n "$SEL_AGENTS" ]; then
     head "Installing AI agents…"
     for ag in $SEL_AGENTS; do
         case "$ag" in
-            codex|gemini|opencode|aider|goose)
+            claude|codex|gemini|opencode|aider|goose|agy|antigravity)
                 if have "$ag"; then ok "$ag already installed"
                 elif [ "$DRY_RUN" = 1 ]; then info "[dry-run] would install $ag"
                 else say "Installing $ag…"; install_agent "$ag" || true; fi ;;
-            claude) warn "claude: install with 'npm install -g @anthropic-ai/claude-code' (or your preferred method)" ;;
-            agy|antigravity) warn "agy (antigravity): use its official installer" ;;
             *) warn "agent '$ag': install it yourself (divvy accepts any command)" ;;
         esac
     done
