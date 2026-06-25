@@ -1,16 +1,31 @@
-# divvy
+<div align="center">
+
+```
+██████╗ ██╗██╗   ██╗██╗   ██╗██╗   ██╗
+██╔══██╗██║██║   ██║██║   ██║╚██╗ ██╔╝
+██║  ██║██║██║   ██║██║   ██║ ╚████╔╝
+██║  ██║██║╚██╗ ██╔╝╚██╗ ██╔╝  ╚██╔╝
+██████╔╝██║ ╚████╔╝  ╚████╔╝    ██║
+╚═════╝ ╚═╝  ╚═══╝    ╚═══╝     ╚═╝
+```
+
+**una terminal dividida para repartir** — archivos · editor · agente IA · shell
 
 [English](README.md) · **Español**
 
+![version](https://img.shields.io/badge/version-1.0.0-bd93f9)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20WSL2-lightgrey)
 ![shell](https://img.shields.io/badge/shell-POSIX%20sh-89e051)
 ![built on zellij](https://img.shields.io/badge/built%20on-zellij-orange)
 ![themes](https://img.shields.io/badge/themes-5-bd93f9)
 
+</div>
+
 Una terminal dividida estilo *tmux/omarchy* sobre **zellij**: explorador de archivos a la
 izquierda, editor en el centro, agente de IA a la derecha y una terminal abajo — todo con
-tema Dracula (y 4 temas más intercambiables).
+tema Dracula (y 4 temas más intercambiables). Corre **dentro de cualquier terminal true-color**
+y puede instalar + auto-tematizar una por ti (Ghostty, WezTerm, kitty, Alacritty).
 
 ```
 ┌──────────────────────── tab-bar ────────────────────────┐
@@ -34,26 +49,28 @@ solo a ese panel.
 | [yazi](https://yazi-rs.github.io) | Explorador de archivos (panel izquierdo) | ✅ |
 | nvim / helix / micro / vim | Editor (panel central) | al menos uno |
 | un agente de IA (CLI) | Panel derecho — ver [Agentes](#agentes) | al menos uno |
-| [Ghostty](https://ghostty.org) | Terminal con *true color* (recomendada) | opcional |
-| JetBrainsMono Nerd Font | Iconos en yazi/lualine | opcional |
+| Una terminal true-color | Ver [Terminales](#terminales) — instala/tematiza opcional | recomendado |
+| JetBrainsMono Nerd Font | Iconos en yazi/lualine | **manual** ([cómo](#nerd-font-manual)) |
 
-> **Terminal:** funciona en cualquier terminal, pero para que los temas se vean fieles
-> necesitas *true color*. Apple Terminal solo da 256 colores — usa **Ghostty**, WezTerm o
-> Alacritty.
+> **Terminal:** divvy corre dentro de zellij, así que funciona en **cualquier** terminal — pero
+> para que los temas se vean fieles necesitas *true color*. Apple Terminal solo da 256 colores.
+> divvy puede instalar y auto-tematizar **Ghostty / WezTerm / kitty / Alacritty** por ti (ver
+> [Terminales](#terminales)).
 
 ---
 
 ## Instalación
 
 ```sh
-git clone <tu-repo> ~/divvy
+git clone https://github.com/jairyara/divvy ~/divvy
 cd ~/divvy
 ./install.sh          # guiado: eliges qué instalar (no todo)
 ```
 
-El instalador es **interactivo**: el core (zellij + yazi) es obligatorio, y eliges editores,
-terminal (Ghostty), fuente y agentes con un menú de casillas (**espacio** marca, **↑/↓**
-mueve, **Enter** confirma). Detecta lo ya instalado y lo salta.
+El instalador es **interactivo**: el core (zellij + yazi) es obligatorio, y eliges **editores**,
+**terminales** y **agentes** con menús de casillas (**espacio** marca, **↑/↓** mueve, **Enter**
+confirma). Detecta lo ya instalado y lo salta. La **Nerd Font es un paso manual** — el
+instalador te indica cómo al final (ver [Nerd Font](#nerd-font-manual)).
 
 Prueba primero tu gestor de paquetes — **brew** (macOS/Linux), **apt**, **dnf**, **pacman**,
 **zypper** o **apk**. Si una herramienta no está empaquetada para tu sistema, descarga el
@@ -64,7 +81,7 @@ binario oficial a `~/.local/bin`, así nunca instalas nada a mano.
 ```sh
 ./install.sh --minimal                 # core + nvim, nada más
 ./install.sh --all                     # todo
-./install.sh --editors "helix nvim" --agents "codex gemini" --no-ghostty --yes
+./install.sh --editors "helix nvim" --terminals "ghostty kitty" --agents "codex" --yes
 ./install.sh --dry-run                 # muestra qué haría, sin instalar
 BINDIR=/usr/local/bin ./install.sh     # cambia dónde van los symlinks
 ```
@@ -72,10 +89,10 @@ BINDIR=/usr/local/bin ./install.sh     # cambia dónde van los symlinks
 | Flag | Qué hace |
 |---|---|
 | `--minimal` | solo core + nvim |
-| `--all` | editores, Ghostty, fuente y agentes |
+| `--all` | editores, todas las terminales y agentes |
 | `--editors "..."` | lista de editores (nvim helix micro vim) |
+| `--terminals "..."` | terminales a instalar/tematizar (ghostty wezterm kitty alacritty) |
 | `--agents "..."` | agentes a instalar (codex gemini opencode aider goose) |
-| `--no-ghostty` / `--no-font` | omite Ghostty / la fuente |
 | `--yes` | sin confirmación · `--dry-run` simula |
 
 ---
@@ -118,8 +135,50 @@ divvy --theme nord        # cambia y lanza
 
 Temas: `dracula` · `catppuccin` · `tokyonight` · `gruvbox` · `nord`.
 
-> Tras cambiar de tema: **relanza divvy** (zellij/editores) y en **Ghostty** pulsa
-> `Cmd+Shift+R` para recargar el tema sin reiniciar.
+> Tras cambiar de tema: **relanza divvy** (zellij/editores). Las terminales también se
+> actualizan: **Ghostty** `Cmd+Shift+R` · **WezTerm / kitty / Alacritty** recargan solas.
+
+---
+
+## Terminales
+
+divvy corre **dentro de zellij**, así que funciona en **cualquier** terminal true-color — no
+tienes que instalar una nueva. Si quieres, el instalador puede configurar una y `divvy-theme`
+la mantendrá sincronizada con el resto del stack:
+
+| Terminal | Auto-instala | Auto-tema | Notas |
+|---|---|---|---|
+| [Ghostty](https://ghostty.org) | ✅ | ✅ | Recomendada. Temas built-in; recarga con `Cmd+Shift+R`. |
+| [WezTerm](https://wezterm.org) | ✅ | ✅ | Color schemes built-in; recarga en vivo. |
+| [kitty](https://sw.kovidgoyal.net/kitty/) | ✅ | ✅ | Temas bundleados; recarga con `SIGUSR1`. |
+| [Alacritty](https://alacritty.org) | ✅ | ✅ | Temas bundleados; recarga de config en vivo. |
+| cualquier otra | — | — | Funciona igual; solo no se auto-tematiza. |
+
+> divvy **nunca sobrescribe** una config de terminal existente — solo escribe una config inicial
+> cuando no hay ninguna, y `divvy-theme` reescribe únicamente la línea/archivo del tema.
+
+```sh
+./install.sh --terminals "ghostty wezterm kitty alacritty"
+```
+
+---
+
+## Nerd Font (manual)
+
+Los iconos en yazi y la barra de estado necesitan una **Nerd Font**. Instálala tú mismo (las
+configs de terminal de divvy ya apuntan a `JetBrainsMono Nerd Font`):
+
+```sh
+# macOS
+brew install --cask font-jetbrains-mono-nerd-font
+
+# Linux — descarga + instala a mano
+curl -fLO https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip
+unzip JetBrainsMono.zip -d ~/.local/share/fonts && fc-cache -f
+```
+
+Luego selecciona **JetBrainsMono Nerd Font** en la config de fuente de tu terminal. Sin ella,
+los iconos se ven como cuadritos (todo lo demás sigue funcionando).
 
 ---
 
@@ -228,6 +287,18 @@ Configs (todas dentro del proyecto, no ensucian tu `~/.config`):
 - **micro: `Ctrl+S`/`Ctrl+Q` no funcionan** (los captura zellij: search y quit). Antes de
   editar pulsa `Ctrl+g` (bloquea zellij → todas las teclas van a micro), guarda/cierra
   normal, y `Ctrl+g` otra vez para volver a navegar.
+
+---
+
+## Contributors
+
+¡Gracias a quienes ayudan a mejorar divvy!
+
+<a href="https://github.com/jairyara/divvy/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=jairyara/divvy" alt="divvy contributors" />
+</a>
+
+¿Quieres ayudar? Mira [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 

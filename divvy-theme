@@ -1,6 +1,6 @@
 #!/bin/sh
 # divvy-theme — changes the theme across the WHOLE stack at once:
-# zellij + ghostty + helix + micro + nvim.
+# zellij + terminals (ghostty/wezterm/kitty/alacritty) + helix + micro + nvim.
 # Usage: divvy-theme <dracula|catppuccin|tokyonight|gruvbox|nord>
 set -e
 
@@ -15,18 +15,20 @@ DIR="$(cd "$(dirname "$SELF")" && pwd)"
 THEME="$1"
 [ -z "$THEME" ] && { echo "Usage: divvy-theme <dracula|catppuccin|tokyonight|gruvbox|nord>"; exit 1; }
 
-# theme-name table per tool
+# theme-name table per tool. Z=zellij G=ghostty W=wezterm H=helix M=micro
+# (kitty + alacritty use the bundled theme file named after $THEME).
 case "$THEME" in
-    dracula)    Z="dracula";          G="Dracula";          H="dracula";            M="darcula" ;;
-    catppuccin) Z="catppuccin-mocha";  G="Catppuccin Mocha"; H="catppuccin_mocha";   M="one-dark" ;;
-    tokyonight) Z="tokyo-night";       G="TokyoNight";       H="tokyonight";         M="one-dark" ;;
-    gruvbox)    Z="gruvbox-dark";      G="Gruvbox Dark Hard"; H="gruvbox_dark_hard";  M="gruvbox" ;;
-    nord)       Z="nord";              G="Nord";             H="nord";               M="nord" ;;
+    dracula)    Z="dracula";          G="Dracula";           W="Dracula (Official)"; H="dracula";            M="darcula" ;;
+    catppuccin) Z="catppuccin-mocha"; G="Catppuccin Mocha";  W="Catppuccin Mocha";   H="catppuccin_mocha";   M="one-dark" ;;
+    tokyonight) Z="tokyo-night";      G="TokyoNight";        W="Tokyo Night";        H="tokyonight";         M="one-dark" ;;
+    gruvbox)    Z="gruvbox-dark";     G="Gruvbox Dark Hard"; W="Gruvbox Dark (Gogh)"; H="gruvbox_dark_hard"; M="gruvbox" ;;
+    nord)       Z="nord";             G="Nord";              W="Nord (Gogh)";        H="nord";               M="nord" ;;
     *) echo "Invalid theme: '$THEME' (use dracula|catppuccin|tokyonight|gruvbox|nord)"; exit 1 ;;
 esac
 
 ZCFG="$HOME/.config/zellij/config.kdl"
 GCFG="$HOME/.config/ghostty/config"
+WCFG="$HOME/.config/wezterm/wezterm.lua"
 HCFG="$DIR/helix/config.toml"
 MCFG="$DIR/micro/settings.json"
 
@@ -34,6 +36,17 @@ MCFG="$DIR/micro/settings.json"
 [ -f "$ZCFG" ] && perl -i -pe 'BEGIN{$t=shift} s/^theme\s+".*"/theme "$t"/' "$Z" "$ZCFG" && echo "zellij  -> $Z"
 # ghostty: replace theme = ...
 [ -f "$GCFG" ] && perl -i -pe 'BEGIN{$t=shift} s/^theme\s*=.*/theme = $t/' "$G" "$GCFG" && echo "ghostty -> $G"
+# wezterm: replace color_scheme = "..."
+[ -f "$WCFG" ] && perl -i -pe 'BEGIN{$t=shift} s/color_scheme\s*=\s*".*"/color_scheme = "$t"/' "$W" "$WCFG" && echo "wezterm -> $W"
+# kitty: copy the bundled theme into the included file; reload running kitties via SIGUSR1
+if [ -d "$HOME/.config/kitty" ] && [ -f "$DIR/kitty/themes/$THEME.conf" ]; then
+    cp "$DIR/kitty/themes/$THEME.conf" "$HOME/.config/kitty/divvy-theme.conf" && echo "kitty   -> $THEME"
+    if command -v pkill >/dev/null 2>&1; then pkill -USR1 -x kitty >/dev/null 2>&1 || true; fi
+fi
+# alacritty: copy the bundled theme into the imported file (alacritty live-reloads it)
+if [ -d "$HOME/.config/alacritty" ] && [ -f "$DIR/alacritty/themes/$THEME.toml" ]; then
+    cp "$DIR/alacritty/themes/$THEME.toml" "$HOME/.config/alacritty/divvy-theme.toml" && echo "alacritty -> $THEME"
+fi
 # helix: replace theme = "..."
 [ -f "$HCFG" ] && perl -i -pe 'BEGIN{$t=shift} s/^theme\s*=\s*".*"/theme = "$t"/' "$H" "$HCFG" && echo "helix   -> $H"
 # micro: colorscheme in JSON
@@ -52,4 +65,4 @@ printf '%s\n' "$THEME" > "$DIR/.theme" && echo "nvim    -> $THEME"
 echo
 echo "Theme '$THEME' applied. To see it:"
 echo "  - relaunch divvy (zellij/helix/micro/nvim pick up the change on reopen)"
-echo "  - in Ghostty: Cmd+Shift+R to reload the theme (no restart needed)"
+echo "  - Ghostty: Cmd+Shift+R · WezTerm: auto · kitty: auto (SIGUSR1) · Alacritty: auto"

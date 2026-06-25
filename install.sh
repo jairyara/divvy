@@ -4,10 +4,14 @@
 #
 # Usage:
 #   ./install.sh                      # guided (asks questions)
-#   ./install.sh --all                # everything (editors, Ghostty, font, brew agents)
+#   ./install.sh --all                # everything (editors, all terminals, brew agents)
 #   ./install.sh --minimal            # core + nvim, nothing else
-#   ./install.sh --editors "nvim helix" --agents "codex gemini" --no-ghostty --yes
+#   ./install.sh --editors "nvim helix" --terminals "ghostty kitty" --agents "codex" --yes
 #   BINDIR=/usr/local/bin ./install.sh
+#
+# Terminals are optional: divvy runs inside zellij, so it works in ANY true-color
+# terminal. Picking one just makes the installer set it up and theme it for you.
+# A Nerd Font is installed by you (manual) — see the note printed at the end.
 #
 # It tries your system package manager first (brew, apt, dnf, pacman, zypper, apk).
 # If a tool isn't packaged for your system, it downloads the official prebuilt
@@ -34,10 +38,23 @@ head() { printf '\n\033[1;36m%s\033[0m\n' "$1"; }        # section title
 
 have() { command -v "$1" >/dev/null 2>&1; }              # is command available?
 
+# Pretty ANSI cover (purple), shown once at the top of the installer.
+banner() {
+    printf '\033[1;35m'
+    cat <<'ART'
+ ██████╗ ██╗██╗   ██╗██╗   ██╗██╗   ██╗
+ ██╔══██╗██║██║   ██║██║   ██║╚██╗ ██╔╝
+ ██║  ██║██║██║   ██║██║   ██║ ╚████╔╝
+ ██║  ██║██║╚██╗ ██╔╝╚██╗ ██╔╝  ╚██╔╝
+ ██████╔╝██║ ╚████╔╝  ╚████╔╝    ██║
+ ╚═════╝ ╚═╝  ╚═══╝    ╚═══╝     ╚═╝
+ART
+    printf '\033[0m\033[2m a split terminal you can divvy up\033[0m\n'
+}
+
 # ─────────────── selection (defaults) ───────────────
 SEL_EDITORS="nvim"           # nvim helix micro vim (nvim = default)
-WANT_GHOSTTY=ask             # ask|1|0
-WANT_FONT=ask
+SEL_TERMS=""                 # ghostty wezterm kitty alacritty (optional; none by default)
 SEL_AGENTS=""                # codex gemini opencode aider goose
 ASSUME_YES=0
 DRY_RUN=0
@@ -46,15 +63,15 @@ INTERACTIVE=1
 # ─────────────── flags ───────────────
 while [ $# -gt 0 ]; do
     case "$1" in
-        --all)      SEL_EDITORS="nvim helix micro vim"; WANT_GHOSTTY=1; WANT_FONT=1;
+        --all)      SEL_EDITORS="nvim helix micro vim"; SEL_TERMS="ghostty wezterm kitty alacritty";
                     SEL_AGENTS="claude codex gemini opencode aider goose agy"; INTERACTIVE=0; shift ;;
-        --minimal)  SEL_EDITORS="nvim"; WANT_GHOSTTY=0; WANT_FONT=0; SEL_AGENTS=""; INTERACTIVE=0; shift ;;
-        --editors)  SEL_EDITORS="$2"; INTERACTIVE=0; shift 2 ;;
-        --agents)   SEL_AGENTS="$2"; INTERACTIVE=0; shift 2 ;;
-        --no-ghostty) WANT_GHOSTTY=0; INTERACTIVE=0; shift ;;
-        --ghostty)    WANT_GHOSTTY=1; INTERACTIVE=0; shift ;;
-        --no-font)    WANT_FONT=0; INTERACTIVE=0; shift ;;
-        --font)       WANT_FONT=1; INTERACTIVE=0; shift ;;
+        --minimal)  SEL_EDITORS="nvim"; SEL_TERMS=""; SEL_AGENTS=""; INTERACTIVE=0; shift ;;
+        --editors)   SEL_EDITORS="$2"; INTERACTIVE=0; shift 2 ;;
+        --terminals) SEL_TERMS="$2"; INTERACTIVE=0; shift 2 ;;
+        --agents)    SEL_AGENTS="$2"; INTERACTIVE=0; shift 2 ;;
+        --no-ghostty) SEL_TERMS="$(printf '%s' "$SEL_TERMS" | sed 's/ghostty//')"; INTERACTIVE=0; shift ;;
+        --ghostty)    case " $SEL_TERMS " in *" ghostty "*) ;; *) SEL_TERMS="ghostty $SEL_TERMS" ;; esac; INTERACTIVE=0; shift ;;
+        --no-font|--font) warn "Nerd Font is now a manual step ($1 ignored)"; shift ;;
         --yes|-y)     ASSUME_YES=1; INTERACTIVE=0; shift ;;
         --dry-run)    DRY_RUN=1; shift ;;
         -h|--help)
@@ -63,6 +80,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 [ -t 0 ] || INTERACTIVE=0    # no interactive terminal → don't ask
+banner
 
 # ─────────────── package manager ───────────────
 # Detect the system package manager and whether we need sudo for it.
@@ -123,6 +141,15 @@ gh_asset() {
         | grep -o '"browser_download_url": *"[^"]*"' \
         | sed 's/.*"\(http[^"]*\)".*/\1/' \
         | grep "$2" | head -1
+}
+
+# Resolve the latest release tag WITHOUT the GitHub API, by following the redirect
+# from /releases/latest and reading the tag off the final URL. Curl-only fallback.
+#   gh_latest_tag <owner/repo>   ->   prints e.g. 25.07.1
+gh_latest_tag() {
+    have curl || return 1
+    _final=$(curl -fgsSLI -o /dev/null -w '%{url_effective}' "$GH/$1/releases/latest" 2>/dev/null)
+    case "$_final" in *"/tag/"*) printf '%s\n' "${_final##*/tag/}" ;; *) return 1 ;; esac
 }
 
 # ─────────────── interactive multi-select ───────────────
@@ -237,19 +264,50 @@ dl_install() {
 
 install_zellij() {
     case "$PM" in brew|pacman) pm_install zellij && return 0 ;; esac
-    dl_install "$GH/zellij-org/zellij/releases/latest/download/zellij-$ARCH-unknown-linux-musl.tar.gz" tgz zellij
+    if [ "$OS" = Darwin ]
+    then dl_install "$GH/zellij-org/zellij/releases/latest/download/zellij-$ARCH-apple-darwin.tar.gz" tgz zellij
+    else dl_install "$GH/zellij-org/zellij/releases/latest/download/zellij-$ARCH-unknown-linux-musl.tar.gz" tgz zellij
+    fi
 }
 
 install_yazi() {
     case "$PM" in brew|pacman) pm_install yazi && return 0 ;; esac
-    dl_install "$GH/sxyazi/yazi/releases/latest/download/yazi-$ARCH-unknown-linux-musl.zip" zip yazi ya
+    if [ "$OS" = Darwin ]
+    then dl_install "$GH/sxyazi/yazi/releases/latest/download/yazi-$ARCH-apple-darwin.zip" zip yazi ya
+    else dl_install "$GH/sxyazi/yazi/releases/latest/download/yazi-$ARCH-unknown-linux-musl.zip" zip yazi ya
+    fi
+}
+
+# Best-effort: yazi's recommended helpers. 'file' is required (mime detection); fd and
+# ripgrep power its search. Package names vary, so we just try and never fail the install.
+install_yazi_extras() {
+    [ "$DRY_RUN" = 1 ] && return 0
+    have file || pm_install file >/dev/null 2>&1 || warn "yazi: install 'file' for file-type detection"
+    have rg   || pm_install ripgrep >/dev/null 2>&1 || true
+    if ! have fd && ! have fdfind; then
+        case "$PM" in
+            apt|dnf) pm_install fd-find >/dev/null 2>&1 || true ;;
+            *)       pm_install fd      >/dev/null 2>&1 || true ;;
+        esac
+    fi
+    return 0
 }
 
 install_helix() {
-    case "$PM" in brew|pacman) pm_install helix && return 0 ;; esac
-    # Helix's asset name embeds the version, so we look it up via the API.
+    # Native package first — it also drops the 'runtime' dir for us.
+    case "$PM" in
+        brew|pacman|zypper|apk) pm_install helix && have hx && return 0 ;;
+        dnf) { pm_install helix || { $SUDO dnf -y copr enable varlad/helix && pm_install helix; }; } && have hx && return 0 ;;
+        apt) { have add-apt-repository && $SUDO add-apt-repository -y ppa:maveonair/helix-editor && pm_install helix; } && have hx && return 0 ;;
+    esac
+    # Prebuilt binary. The asset name embeds the version, so resolve it via the API and,
+    # if that's rate-limited/unavailable, via the API-less /releases/latest redirect.
     _u=$(gh_asset helix-editor/helix "$ARCH-linux.tar.xz")
-    if [ -z "$_u" ]; then warn "helix: no linux asset matched (arch=$ARCH)"; return 1; fi
+    if [ -z "$_u" ]; then
+        _tag=$(gh_latest_tag helix-editor/helix)
+        [ -n "$_tag" ] && _u="$GH/helix-editor/helix/releases/download/$_tag/helix-$_tag-$ARCH-linux.tar.xz"
+    fi
+    if [ -z "$_u" ]; then warn "helix: couldn't resolve a download URL (arch=$ARCH)"; return 1; fi
     _t=$(mktemp -d) || return 1
     fetch "$_u" "$_t/h.txz" || { warn "download failed: $_u"; rm -rf "$_t"; return 1; }
     extract "$_t/h.txz" txz "$_t" || { warn "could not extract helix"; rm -rf "$_t"; return 1; }
@@ -264,7 +322,10 @@ install_helix() {
 install_nvim() {
     case "$PM" in brew) pm_install neovim && return 0 ;; esac
     # Distro neovim is often too old for our config, so prefer the official binary.
-    case "$ARCH" in x86_64) _f=nvim-linux-x86_64 ;; aarch64) _f=nvim-linux-arm64 ;; *) _f=nvim-linux64 ;; esac
+    if [ "$OS" = Darwin ]
+    then case "$ARCH" in aarch64) _f=nvim-macos-arm64 ;; *) _f=nvim-macos-x86_64 ;; esac
+    else case "$ARCH" in aarch64) _f=nvim-linux-arm64 ;; *) _f=nvim-linux-x86_64 ;; esac
+    fi
     _t=$(mktemp -d) || return 1
     if fetch "$GH/neovim/neovim/releases/latest/download/$_f.tar.gz" "$_t/n.tgz" && extract "$_t/n.tgz" tgz "$_t"; then
         _d=$(find "$_t" -maxdepth 1 -type d -name 'nvim-*' | head -1)
@@ -322,15 +383,50 @@ install_ghostty() {
     return 0
 }
 
-install_font() {
-    if [ "$PM" = brew ]; then brew install --cask font-jetbrains-mono-nerd-font || true; return 0; fi
-    _fdir="$HOME/.local/share/fonts"; mkdir -p "$_fdir"
-    if ls "$_fdir"/JetBrainsMono*Nerd* >/dev/null 2>&1; then ok "Nerd Font already installed"; return 0; fi
-    _t=$(mktemp -d) || return 1
-    fetch "$GH/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip" "$_t/f.zip" || { warn "font download failed"; rm -rf "$_t"; return 1; }
-    need unzip && unzip -qo "$_t/f.zip" -d "$_fdir" || { warn "could not unzip the font"; rm -rf "$_t"; return 1; }
-    have fc-cache && fc-cache -f >/dev/null 2>&1
-    rm -rf "$_t"; return 0
+# WezTerm / Kitty / Alacritty are well packaged everywhere, so a single PM path
+# (plus brew cask on macOS) covers almost every system.
+install_wezterm() {
+    case "$PM" in
+        brew)   brew install --cask wezterm && return 0 ;;
+        pacman) pm_install wezterm && return 0 ;;
+        apk)    pm_install wezterm && return 0 ;;
+    esac
+    have flatpak && { say "Installing WezTerm via Flatpak…"; flatpak install -y flathub org.wezfurlong.wezterm && return 0; }
+    warn "Couldn't install WezTerm automatically — see https://wezterm.org/installation"; return 1
+}
+
+install_kitty() {
+    case "$PM" in
+        brew)   brew install --cask kitty && return 0 ;;
+        pacman) pm_install kitty && return 0 ;;
+        dnf)    pm_install kitty && return 0 ;;
+        apt)    pm_install kitty && return 0 ;;
+        zypper) pm_install kitty && return 0 ;;
+        apk)    pm_install kitty && return 0 ;;
+    esac
+    # Official cross-distro installer → ~/.local/kitty.app, symlink into BINDIR.
+    if have curl || have wget; then
+        say "Installing kitty via its official installer…"
+        if have curl; then sh -c "$(curl -fgsSL https://sw.kovidgoyal.net/kitty/installer.sh)" || return 1
+        else sh -c "$(wget -qO- https://sw.kovidgoyal.net/kitty/installer.sh)" || return 1; fi
+        mkdir -p "$BINDIR"
+        ln -sf "$HOME/.local/kitty.app/bin/kitty" "$BINDIR/kitty" 2>/dev/null
+        ln -sf "$HOME/.local/kitty.app/bin/kitten" "$BINDIR/kitten" 2>/dev/null
+        return 0
+    fi
+    warn "Couldn't install kitty automatically — see https://sw.kovidgoyal.net/kitty/binary/"; return 1
+}
+
+install_alacritty() {
+    case "$PM" in
+        brew)   brew install --cask alacritty && return 0 ;;
+        pacman) pm_install alacritty && return 0 ;;
+        dnf)    pm_install alacritty && return 0 ;;
+        apt)    pm_install alacritty && return 0 ;;
+        zypper) pm_install alacritty && return 0 ;;
+        apk)    pm_install alacritty && return 0 ;;
+    esac
+    warn "Couldn't install Alacritty automatically — see https://alacritty.org (cargo install alacritty)"; return 1
 }
 
 install_agent() {
@@ -391,27 +487,28 @@ if [ "$INTERACTIVE" = 1 ]; then
     echo "Editors — the central pane editor. nvim is recommended (opens many files as tabs)."
     multiselect "Editors  —  space to toggle · ↑/↓ to move · Enter to confirm" \
         SEL_EDITORS "nvim helix micro vim" "nvim"
-    ask_yn "Install Ghostty (a fast terminal with true color, recommended)?" n && WANT_GHOSTTY=1 || WANT_GHOSTTY=0
-    ask_yn "Install JetBrainsMono Nerd Font (needed for icons)?" y && WANT_FONT=1 || WANT_FONT=0
+    echo
+    echo "Terminals — optional. divvy works in ANY true-color terminal; pick one to have it"
+    echo "installed and auto-themed (Ghostty is a great default). Skip to use your current one."
+    multiselect "Terminals  —  space to toggle · ↑/↓ to move · Enter to confirm" \
+        SEL_TERMS "ghostty wezterm kitty alacritty" "ghostty"
     echo
     echo "AI agents — the right-hand pane. claude is divvy's default; 'agy' is Google Antigravity."
     multiselect "AI agents  —  space to toggle · ↑/↓ to move · Enter to confirm" \
         SEL_AGENTS "claude codex gemini opencode aider goose agy" "claude"
 fi
-[ "$WANT_GHOSTTY" = ask ] && WANT_GHOSTTY=0
-[ "$WANT_FONT" = ask ] && WANT_FONT=1
 
 # ─────────────── summary ───────────────
 head "About to install:"
-echo "  core:     zellij, yazi"
-echo "  editors:  $SEL_EDITORS"
-echo "  ghostty:  $([ "$WANT_GHOSTTY" = 1 ] && echo yes || echo no)"
-echo "  font:     $([ "$WANT_FONT" = 1 ] && echo yes || echo no)"
-echo "  agents:   ${SEL_AGENTS:-(none)}"
-echo "  symlinks: $BINDIR"
-echo "  system:   $OS / $ARCH"
-echo "  manager:  $PM"
-echo "  download: $(have curl && echo curl || { have wget && echo wget || echo '(none — install curl)'; })"
+echo "  core:      zellij, yazi"
+echo "  editors:   $SEL_EDITORS"
+echo "  terminals: ${SEL_TERMS:-(none — use your current terminal)}"
+echo "  font:      manual (Nerd Font — see the note at the end)"
+echo "  agents:    ${SEL_AGENTS:-(none)}"
+echo "  symlinks:  $BINDIR"
+echo "  system:    $OS / $ARCH"
+echo "  manager:   $PM"
+echo "  download:  $(have curl && echo curl || { have wget && echo wget || echo '(none — install curl)'; })"
 [ "$DRY_RUN" = 1 ] && warn "DRY-RUN: nothing will actually be installed."
 if [ "$DRY_RUN" = 0 ] && [ "$ASSUME_YES" = 0 ] && [ "$INTERACTIVE" = 1 ]; then
     ask_yn "Continue?" y || { echo "Cancelled."; exit 0; }
@@ -433,6 +530,7 @@ fi
 head "Installing core (zellij + yazi)…"
 ensure zellij install_zellij "zellij (window manager)"
 ensure yazi   install_yazi   "yazi (file manager)"
+install_yazi_extras
 
 # ─────────────── install: editors ───────────────
 head "Installing editors…"
@@ -446,16 +544,18 @@ for ed in $SEL_EDITORS; do
     esac
 done
 
-# ─────────────── install: Ghostty ───────────────
-if [ "$WANT_GHOSTTY" = 1 ]; then
-    head "Installing Ghostty…"
-    if [ "$DRY_RUN" = 1 ]; then info "[dry-run] would install Ghostty"; else install_ghostty; fi
-fi
-
-# ─────────────── install: Nerd Font ───────────────
-if [ "$WANT_FONT" = 1 ]; then
-    head "Installing Nerd Font…"
-    if [ "$DRY_RUN" = 1 ]; then info "[dry-run] would install JetBrainsMono Nerd Font"; else install_font || warn "Could not install the font automatically — get it at https://nerdfonts.com"; fi
+# ─────────────── install: terminals (optional) ───────────────
+if [ -n "$SEL_TERMS" ]; then
+    head "Installing terminals…"
+    for term in $SEL_TERMS; do
+        case "$term" in
+            ghostty)   ensure ghostty   install_ghostty   "Ghostty" ;;
+            wezterm)   ensure wezterm    install_wezterm   "WezTerm" ;;
+            kitty)     ensure kitty      install_kitty     "kitty" ;;
+            alacritty) ensure alacritty  install_alacritty "Alacritty" ;;
+            *) warn "unknown terminal: $term (skipped)" ;;
+        esac
+    done
 fi
 
 # ─────────────── install: agents ───────────────
@@ -526,12 +626,16 @@ EOF
     fi
 fi
 
-# ─────────────── Ghostty config (only if installed) ───────────────
-if [ "$DRY_RUN" = 0 ] && { have ghostty || [ -d /Applications/Ghostty.app ]; }; then
-    GCFG="$HOME/.config/ghostty/config"
-    if [ ! -f "$GCFG" ]; then
-        say "Setting up Ghostty…"; mkdir -p "$(dirname "$GCFG")"
-        cat > "$GCFG" <<EOF
+# ─────────────── terminal configs (only for installed terminals) ───────────────
+# We only WRITE a config when none exists (never clobber yours). Themes are applied
+# later by divvy-theme, which rewrites just the theme line in whatever config exists.
+if [ "$DRY_RUN" = 0 ]; then
+    # Ghostty — built-in themes
+    if have ghostty || [ -d /Applications/Ghostty.app ]; then
+        GCFG="$HOME/.config/ghostty/config"
+        if [ ! -f "$GCFG" ]; then
+            say "Setting up Ghostty…"; mkdir -p "$(dirname "$GCFG")"
+            cat > "$GCFG" <<EOF
 theme = Dracula
 font-family = "JetBrainsMono Nerd Font"
 font-size = 14
@@ -541,6 +645,60 @@ window-padding-y = 6
 macos-option-as-alt = true
 keybind = cmd+shift+r=reload_config
 EOF
+        fi
+    fi
+    # WezTerm — built-in color schemes
+    if have wezterm || [ -d /Applications/WezTerm.app ]; then
+        WCFG="$HOME/.config/wezterm/wezterm.lua"
+        if [ ! -f "$WCFG" ]; then
+            say "Setting up WezTerm…"; mkdir -p "$(dirname "$WCFG")"
+            cat > "$WCFG" <<EOF
+local wezterm = require("wezterm")
+return {
+  color_scheme = "Dracula",
+  font = wezterm.font("JetBrainsMono Nerd Font"),
+  font_size = 14.0,
+  window_padding = { left = 8, right = 8, top = 6, bottom = 6 },
+  enable_tab_bar = false,
+}
+EOF
+        fi
+    fi
+    # kitty — theme bundled in repo, included via a stable file divvy-theme rewrites
+    if have kitty || [ -d /Applications/kitty.app ]; then
+        KCFG="$HOME/.config/kitty/kitty.conf"
+        if [ ! -f "$KCFG" ]; then
+            say "Setting up kitty…"; mkdir -p "$(dirname "$KCFG")"
+            cat > "$KCFG" <<EOF
+font_family JetBrainsMono Nerd Font
+font_size 14.0
+window_padding_width 6
+include divvy-theme.conf
+EOF
+            cp "$DIR/kitty/themes/dracula.conf" "$HOME/.config/kitty/divvy-theme.conf" 2>/dev/null
+        fi
+    fi
+    # Alacritty — theme bundled in repo, imported via a stable file divvy-theme rewrites
+    if have alacritty || [ -d /Applications/Alacritty.app ]; then
+        ACFG="$HOME/.config/alacritty/alacritty.toml"
+        if [ ! -f "$ACFG" ]; then
+            say "Setting up Alacritty…"; mkdir -p "$(dirname "$ACFG")"
+            cat > "$ACFG" <<EOF
+[general]
+import = ["$HOME/.config/alacritty/divvy-theme.toml"]
+
+[font]
+size = 14.0
+
+[font.normal]
+family = "JetBrainsMono Nerd Font"
+
+[window.padding]
+x = 8
+y = 6
+EOF
+            cp "$DIR/alacritty/themes/dracula.toml" "$HOME/.config/alacritty/divvy-theme.toml" 2>/dev/null
+        fi
     fi
 fi
 
@@ -569,6 +727,16 @@ if [ "$DRY_RUN" = 0 ] && [ -f "$DIR/.theme" ]; then
     "$BINDIR/divvy-theme" "$(cat "$DIR/.theme")" >/dev/null 2>&1 || true
 fi
 
+head "One manual step: install a Nerd Font"
+echo "Icons in yazi and the status line need a Nerd Font. Install one yourself:"
+case "$OS" in
+    Darwin) info "macOS:  brew install --cask font-jetbrains-mono-nerd-font" ;;
+    *)      info "Linux:  download JetBrainsMono from https://www.nerdfonts.com/font-downloads," ;;
+esac
+[ "$OS" = Darwin ] || info "        unzip into ~/.local/share/fonts, then run: fc-cache -f"
+info "Then select \"JetBrainsMono Nerd Font\" in your terminal's settings."
+info "(divvy's terminal configs already point to it — no change needed once it's installed.)"
+
 head "Done!"
-echo "Open your terminal (Ghostty recommended) and run:  divvy"
+echo "Open your terminal and run:  divvy"
 echo "Help:  divvy --help   ·   themes:  divvy-theme <name>"
