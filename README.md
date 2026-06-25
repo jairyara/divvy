@@ -92,7 +92,7 @@ BINDIR=/usr/local/bin ./install.sh     # change where the symlinks go
 | `--all` | editors, all terminals, and agents |
 | `--editors "..."` | list of editors (nvim helix micro vim) |
 | `--terminals "..."` | terminals to install/theme (ghostty wezterm kitty alacritty) |
-| `--agents "..."` | agents to install (codex gemini opencode aider goose) |
+| `--agents "..."` | agents to install (codex opencode aider goose agy) |
 | `--yes` | no confirmation · `--dry-run` simulates |
 
 ---
@@ -191,7 +191,6 @@ prefer (and pay for). Suggested ones:
 |---|---|---|
 | Claude Code | `claude` | `npm i -g @anthropic-ai/claude-code` · `curl -fsSL https://claude.ai/install.sh \| sh` |
 | OpenAI Codex | `codex` | `brew install --cask codex` · `npm i -g @openai/codex` |
-| Gemini CLI | `gemini` | `brew install gemini-cli` · `npm i -g @google/gemini-cli` |
 | opencode | `opencode` | `brew install opencode` · `npm i -g opencode-ai` |
 | aider | `aider` | `brew install aider` · `pipx install aider-chat` |
 | goose | `goose` | `brew install block-goose-cli` |
@@ -199,7 +198,7 @@ prefer (and pay for). Suggested ones:
 
 ```sh
 divvy -a codex          # OpenAI Codex
-divvy -a gemini         # Gemini
+divvy -a agy            # Antigravity
 divvy -a my-agent       # any command of yours
 ```
 
@@ -274,6 +273,13 @@ Configs (all inside the project, they don't touch your `~/.config`):
 
 ## Common issues
 
+- **`divvy: command not found` (or a tool "installed but not on PATH"):** `~/.local/bin`
+  isn't on your `PATH` for this shell yet. The installer adds it to your shell rc, so it works
+  in **new** terminals. To enable it in the current one, run `source ~/.zshrc` (or `~/.bashrc`),
+  or add this line to your shell config by hand:
+  ```sh
+  export PATH="$HOME/.local/bin:$PATH"
+  ```
 - **Weird colors:** your terminal lacks true color → use Ghostty/WezTerm/Alacritty.
 - **`Alt`+arrows don't move focus:** in Apple Terminal enable "Use Option as Meta"; in Ghostty
   it's already on (`macos-option-as-alt`).

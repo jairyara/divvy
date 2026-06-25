@@ -92,7 +92,7 @@ BINDIR=/usr/local/bin ./install.sh     # cambia dónde van los symlinks
 | `--all` | editores, todas las terminales y agentes |
 | `--editors "..."` | lista de editores (nvim helix micro vim) |
 | `--terminals "..."` | terminales a instalar/tematizar (ghostty wezterm kitty alacritty) |
-| `--agents "..."` | agentes a instalar (codex gemini opencode aider goose) |
+| `--agents "..."` | agentes a instalar (codex opencode aider goose agy) |
 | `--yes` | sin confirmación · `--dry-run` simula |
 
 ---
@@ -191,7 +191,6 @@ prefieras (y el que pagues). Recomendados:
 |---|---|---|
 | Claude Code | `claude` | `npm i -g @anthropic-ai/claude-code` · `curl -fsSL https://claude.ai/install.sh \| sh` |
 | OpenAI Codex | `codex` | `brew install --cask codex` · `npm i -g @openai/codex` |
-| Gemini CLI | `gemini` | `brew install gemini-cli` · `npm i -g @google/gemini-cli` |
 | opencode | `opencode` | `brew install opencode` · `npm i -g opencode-ai` |
 | aider | `aider` | `brew install aider` · `pipx install aider-chat` |
 | goose | `goose` | `brew install block-goose-cli` |
@@ -199,7 +198,7 @@ prefieras (y el que pagues). Recomendados:
 
 ```sh
 divvy -a codex          # OpenAI Codex
-divvy -a gemini         # Gemini
+divvy -a agy            # Antigravity
 divvy -a mi-agente      # cualquier comando tuyo
 ```
 
@@ -273,6 +272,13 @@ Configs (todas dentro del proyecto, no ensucian tu `~/.config`):
 
 ## Problemas comunes
 
+- **`divvy: command not found` (o una herramienta "installed but not on PATH"):** `~/.local/bin`
+  aún no está en tu `PATH` en esta shell. El instalador agrega la línea a tu rc, así que funciona
+  en terminales **nuevas**. Para activarlo en la actual, ejecuta `source ~/.zshrc` (o `~/.bashrc`),
+  o agrega esta línea a tu config de shell a mano:
+  ```sh
+  export PATH="$HOME/.local/bin:$PATH"
+  ```
 - **Colores raros:** tu terminal no tiene true color → usa Ghostty/WezTerm/Alacritty.
 - **`Alt`+flechas no mueven el foco:** en Apple Terminal activa "Usar Opción como Meta"; en
   Ghostty ya viene activado (`macos-option-as-alt`).

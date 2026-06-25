@@ -29,9 +29,9 @@ Usage:
 Options:
   -e, --editor <nvim|helix|micro|vim>    Center editor          (default: nvim)
   -a, --agent  <command>                 Right-hand agent       (default: claude)
-                                         Suggested: claude, codex, gemini,
-                                         opencode, aider, agy, goose. Accepts
-                                         any command you have installed.
+                                         Suggested: claude, codex, opencode,
+                                         aider, agy, goose. Accepts any command
+                                         you have installed.
   -t, --theme  <dracula|catppuccin|tokyonight|gruvbox|nord>  Set the theme and launch
   -l, --list                             List editors/agents/themes
       --dry-run                          Generate the layout and print it (don't launch)
@@ -50,7 +50,7 @@ while [ $# -gt 0 ]; do
         -e|--editor) EDITOR_CHOICE="$2"; shift 2 ;;
         -a|--agent)  AGENT_CHOICE="$2";  shift 2 ;;
         -t|--theme)  THEME_CHOICE="$2";  shift 2 ;;
-        -l|--list)   echo "Editors:   nvim, helix, micro, vim"; echo "Agents:    claude, codex, gemini, opencode, aider, agy, goose (or any command)"; echo "Themes:    dracula, catppuccin, tokyonight, gruvbox, nord"; echo "Terminals: ghostty, wezterm, kitty, alacritty (themed automatically; runs in any)"; exit 0 ;;
+        -l|--list)   echo "Editors:   nvim, helix, micro, vim"; echo "Agents:    claude, codex, opencode, aider, agy, goose (or any command)"; echo "Themes:    dracula, catppuccin, tokyonight, gruvbox, nord"; echo "Terminals: ghostty, wezterm, kitty, alacritty (themed automatically; runs in any)"; exit 0 ;;
         --dry-run)   DRY_RUN=1; shift ;;
         -h|--help)   usage; exit 0 ;;
         *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
@@ -62,7 +62,7 @@ case "$EDITOR_CHOICE" in
     *) echo "Invalid editor: '$EDITOR_CHOICE' (use nvim|helix|micro|vim)" >&2; exit 1 ;;
 esac
 # The agent can be any command (bring-your-own); we only check it isn't empty.
-[ -z "$AGENT_CHOICE" ] && { echo "Empty agent. Use -a <command> (e.g. claude, codex, gemini…)" >&2; exit 1; }
+[ -z "$AGENT_CHOICE" ] && { echo "Empty agent. Use -a <command> (e.g. claude, codex, agy…)" >&2; exit 1; }
 
 # apply the theme if one was requested
 if [ -n "$THEME_CHOICE" ]; then

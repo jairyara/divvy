@@ -34,7 +34,7 @@ say()  { printf '\033[1;35m==>\033[0m %s\n' "$1"; }      # step
 ok()   { printf '\033[1;32m  ✓\033[0m %s\n' "$1"; }      # success
 warn() { printf '\033[1;33m  !\033[0m %s\n' "$1"; }      # warning / manual step
 info() { printf '    %s\n' "$1"; }                       # extra detail
-head() { printf '\n\033[1;36m%s\033[0m\n' "$1"; }        # section title
+hdr()  { printf '\n\033[1;36m%s\033[0m\n' "$1"; }        # section title (NOT 'head': that shadows the head command used in pipes)
 
 have() { command -v "$1" >/dev/null 2>&1; }              # is command available?
 
@@ -55,7 +55,7 @@ ART
 # ─────────────── selection (defaults) ───────────────
 SEL_EDITORS="nvim"           # nvim helix micro vim (nvim = default)
 SEL_TERMS=""                 # ghostty wezterm kitty alacritty (optional; none by default)
-SEL_AGENTS=""                # codex gemini opencode aider goose
+SEL_AGENTS=""                # codex opencode aider goose agy
 ASSUME_YES=0
 DRY_RUN=0
 INTERACTIVE=1
@@ -64,7 +64,7 @@ INTERACTIVE=1
 while [ $# -gt 0 ]; do
     case "$1" in
         --all)      SEL_EDITORS="nvim helix micro vim"; SEL_TERMS="ghostty wezterm kitty alacritty";
-                    SEL_AGENTS="claude codex gemini opencode aider goose agy"; INTERACTIVE=0; shift ;;
+                    SEL_AGENTS="claude codex opencode aider goose agy"; INTERACTIVE=0; shift ;;
         --minimal)  SEL_EDITORS="nvim"; SEL_TERMS=""; SEL_AGENTS=""; INTERACTIVE=0; shift ;;
         --editors)   SEL_EDITORS="$2"; INTERACTIVE=0; shift 2 ;;
         --terminals) SEL_TERMS="$2"; INTERACTIVE=0; shift 2 ;;
@@ -441,10 +441,6 @@ install_agent() {
             [ "$PM" = brew ] && { brew install --cask codex && return 0; }
             have npm && { npm install -g @openai/codex && return 0; }
             warn "codex: install with 'npm install -g @openai/codex' (needs Node.js)"; return 1 ;;
-        gemini)
-            [ "$PM" = brew ] && { brew install gemini-cli && return 0; }
-            have npm && { npm install -g @google/gemini-cli && return 0; }
-            warn "gemini: install with 'npm install -g @google/gemini-cli' (needs Node.js)"; return 1 ;;
         opencode)
             [ "$PM" = brew ] && { brew install opencode && return 0; }
             have npm && { npm install -g opencode-ai && return 0; }
@@ -481,7 +477,7 @@ ensure() {
 
 # ─────────────── interactive questions ───────────────
 if [ "$INTERACTIVE" = 1 ]; then
-    head "divvy — guided installer"
+    hdr "divvy — guided installer"
     echo "Base (always installed): zellij + yazi. Pick the rest below."
     echo
     echo "Editors — the central pane editor. nvim is recommended (opens many files as tabs)."
@@ -495,11 +491,11 @@ if [ "$INTERACTIVE" = 1 ]; then
     echo
     echo "AI agents — the right-hand pane. claude is divvy's default; 'agy' is Google Antigravity."
     multiselect "AI agents  —  space to toggle · ↑/↓ to move · Enter to confirm" \
-        SEL_AGENTS "claude codex gemini opencode aider goose agy" "claude"
+        SEL_AGENTS "claude codex opencode aider goose agy" "claude"
 fi
 
 # ─────────────── summary ───────────────
-head "About to install:"
+hdr "About to install:"
 echo "  core:      zellij, yazi"
 echo "  editors:   $SEL_EDITORS"
 echo "  terminals: ${SEL_TERMS:-(none — use your current terminal)}"
@@ -527,13 +523,13 @@ if [ "$DRY_RUN" = 0 ] && ! have curl && ! have wget; then
 fi
 
 # ─────────────── install: core ───────────────
-head "Installing core (zellij + yazi)…"
+hdr "Installing core (zellij + yazi)…"
 ensure zellij install_zellij "zellij (window manager)"
 ensure yazi   install_yazi   "yazi (file manager)"
 install_yazi_extras
 
 # ─────────────── install: editors ───────────────
-head "Installing editors…"
+hdr "Installing editors…"
 for ed in $SEL_EDITORS; do
     case "$ed" in
         nvim)  ensure nvim  install_nvim  "Neovim" ;;
@@ -546,7 +542,7 @@ done
 
 # ─────────────── install: terminals (optional) ───────────────
 if [ -n "$SEL_TERMS" ]; then
-    head "Installing terminals…"
+    hdr "Installing terminals…"
     for term in $SEL_TERMS; do
         case "$term" in
             ghostty)   ensure ghostty   install_ghostty   "Ghostty" ;;
@@ -560,10 +556,10 @@ fi
 
 # ─────────────── install: agents ───────────────
 if [ -n "$SEL_AGENTS" ]; then
-    head "Installing AI agents…"
+    hdr "Installing AI agents…"
     for ag in $SEL_AGENTS; do
         case "$ag" in
-            claude|codex|gemini|opencode|aider|goose|agy|antigravity)
+            claude|codex|opencode|aider|goose|agy|antigravity)
                 if have "$ag"; then ok "$ag already installed"
                 elif [ "$DRY_RUN" = 1 ]; then info "[dry-run] would install $ag"
                 else say "Installing $ag…"; install_agent "$ag" || true; fi ;;
@@ -573,7 +569,7 @@ if [ -n "$SEL_AGENTS" ]; then
 fi
 
 # ─────────────── symlinks ───────────────
-head "Creating symlinks in $BINDIR…"
+hdr "Creating symlinks in $BINDIR…"
 if [ "$DRY_RUN" = 1 ]; then
     info "[dry-run] divvy divvy-edit divvy-open divvy-theme divvy-clean -> $BINDIR"
 else
@@ -581,24 +577,25 @@ else
     for s in divvy divvy-edit divvy-open divvy-theme divvy-clean; do
         chmod +x "$DIR/$s"; ln -sf "$DIR/$s" "$BINDIR/$s"
     done
-    # Make sure BINDIR is on PATH — add it to the shell rc so 'divvy' just works.
+    # Make sure BINDIR is on PATH for FUTURE shells — always ensure the line is in the
+    # shell rc (idempotent via a marker), even if it happens to be on PATH right now.
+    _rc="$HOME/.profile"
+    case "${SHELL##*/}" in
+        zsh)  _rc="$HOME/.zshrc" ;;
+        bash) _rc="$HOME/.bashrc" ;;
+    esac
+    if grep -qs 'divvy: add ~/.local/bin to PATH' "$_rc" 2>/dev/null; then
+        ok "PATH already configured in $_rc"
+    elif printf '\n# divvy: add ~/.local/bin to PATH\nexport PATH="%s:$PATH"\n' "$BINDIR" >> "$_rc" 2>/dev/null; then
+        ok "Added $BINDIR to your PATH in $_rc"
+    else
+        warn "Couldn't update $_rc automatically. Add this line to your shell config by hand:"
+        info "    export PATH=\"$BINDIR:\$PATH\""
+    fi
+    # If it's not active in THIS session yet, tell the user how to turn it on now.
     case ":$PATH:" in
         *":$BINDIR:"*) ;;
-        *)
-            _rc="$HOME/.profile"
-            case "${SHELL##*/}" in
-                zsh)  _rc="$HOME/.zshrc" ;;
-                bash) [ -f "$HOME/.bashrc" ] && _rc="$HOME/.bashrc" ;;
-            esac
-            if grep -qs 'divvy: add ~/.local/bin to PATH' "$_rc"; then
-                warn "$BINDIR is set up in $_rc but not active yet."
-                info "Run:  source $_rc   (or open a new terminal)"
-            else
-                printf '\n# divvy: add ~/.local/bin to PATH\nexport PATH="%s:$PATH"\n' "$BINDIR" >> "$_rc" \
-                    && ok "Added $BINDIR to your PATH in $_rc" \
-                    || warn "Add $BINDIR to your PATH manually: export PATH=\"$BINDIR:\$PATH\""
-                info "Run:  source $_rc   (or open a new terminal) to use divvy now."
-            fi ;;
+        *) info "Not active in this shell yet — run:  source $_rc   (or open a new terminal)" ;;
     esac
 fi
 
@@ -727,7 +724,7 @@ if [ "$DRY_RUN" = 0 ] && [ -f "$DIR/.theme" ]; then
     "$BINDIR/divvy-theme" "$(cat "$DIR/.theme")" >/dev/null 2>&1 || true
 fi
 
-head "One manual step: install a Nerd Font"
+hdr "One manual step: install a Nerd Font"
 echo "Icons in yazi and the status line need a Nerd Font. Install one yourself:"
 case "$OS" in
     Darwin) info "macOS:  brew install --cask font-jetbrains-mono-nerd-font" ;;
@@ -737,6 +734,6 @@ esac
 info "Then select \"JetBrainsMono Nerd Font\" in your terminal's settings."
 info "(divvy's terminal configs already point to it — no change needed once it's installed.)"
 
-head "Done!"
+hdr "Done!"
 echo "Open your terminal and run:  divvy"
 echo "Help:  divvy --help   ·   themes:  divvy-theme <name>"
