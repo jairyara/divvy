@@ -102,17 +102,21 @@ need() {
 }
 
 # Download a URL to a file using curl or wget, whichever exists.
+# curl: -g disables URL globbing (avoids "bad range in URL position" errors),
+#       -L follows the redirect from /releases/latest/download/, --retry adds resilience.
 fetch() {
-    if   have curl; then curl -fsSL "$1" -o "$2"
-    elif have wget; then wget -qO "$2" "$1"
+    if   have curl; then curl -fgsSL --retry 2 "$1" -o "$2"
+    elif have wget; then wget -q -O "$2" "$1"
     else warn "need 'curl' or 'wget' to download files"; return 1; fi
 }
 
 # Print the download URL of the latest GitHub release asset matching a substring.
+# Only used for tools whose asset name contains a version (e.g. helix); everything
+# else uses the stable /releases/latest/download/<asset> URL and skips the API.
 #   gh_asset <owner/repo> <substring>
 gh_asset() {
     _api="https://api.github.com/repos/$1/releases/latest"
-    if   have curl; then _json=$(curl -fsSL "$_api" 2>/dev/null)
+    if   have curl; then _json=$(curl -fgsSL "$_api" 2>/dev/null)
     elif have wget; then _json=$(wget -qO- "$_api" 2>/dev/null)
     else return 1; fi
     printf '%s\n' "$_json" \
@@ -195,23 +199,27 @@ ask_yn() {
     case "$_a" in y|Y|yes|s|S|si) return 0 ;; *) return 1 ;; esac
 }
 
-# ─────────────── download helper ───────────────
-# Download a GitHub release archive and install one or more binaries into BINDIR.
-# Tries hard to explain *why* it failed instead of silently giving up.
-#   dl_gh <repo> <asset-substring> <tgz|txz|zip> <bin> [extra-bins...]
-# The first <bin> is required; any extras are best-effort.
-dl_gh() {
-    _repo=$1; _pat=$2; _kind=$3; shift 3; _primary=$1
-    _u=$(gh_asset "$_repo" "$_pat")
-    if [ -z "$_u" ]; then warn "$_repo: no release asset matched '$_pat' (arch=$ARCH)"; return 1; fi
-    _t=$(mktemp -d) || return 1
-    if ! fetch "$_u" "$_t/archive"; then warn "download failed: $_u"; rm -rf "$_t"; return 1; fi
-    case "$_kind" in
-        tgz) need tar          && tar -xzf "$_t/archive" -C "$_t" ;;
-        txz) need tar && need xz && tar -xJf "$_t/archive" -C "$_t" ;;
-        zip) need unzip        && unzip -q "$_t/archive" -d "$_t" ;;
+# ─────────────── download helpers ───────────────
+GH="https://github.com"   # base; we use /<repo>/releases/latest/download/<asset>
+
+# Extract archive ($1) of kind ($2: tgz|txz|zip) into dir ($3).
+extract() {
+    case "$2" in
+        tgz) need tar          && tar -xzf "$1" -C "$3" ;;
+        txz) need tar && need xz && tar -xJf "$1" -C "$3" ;;
+        zip) need unzip        && unzip -qo "$1" -d "$3" ;;
+        *)   return 1 ;;
     esac
-    if [ $? -ne 0 ]; then warn "could not extract $_u"; rm -rf "$_t"; return 1; fi
+}
+
+# Download a release archive from a *known* URL and install one or more binaries
+# into BINDIR. The first <bin> is required; extras are best-effort.
+#   dl_install <url> <tgz|txz|zip> <bin> [extra-bins...]
+dl_install() {
+    _url=$1; _kind=$2; shift 2; _primary=$1
+    _t=$(mktemp -d) || return 1
+    if ! fetch "$_url" "$_t/archive"; then warn "download failed: $_url"; rm -rf "$_t"; return 1; fi
+    if ! extract "$_t/archive" "$_kind" "$_t"; then warn "could not extract $_url"; rm -rf "$_t"; return 1; fi
     mkdir -p "$BINDIR"; _missing=0
     for _b in "$@"; do
         _f=$(find "$_t" -type f -name "$_b" 2>/dev/null | head -1)
@@ -219,7 +227,7 @@ dl_gh() {
         elif [ "$_b" = "$_primary" ]; then _missing=1; fi
     done
     rm -rf "$_t"
-    [ "$_missing" = 0 ] || { warn "$_repo: binary '$_primary' not found inside the archive"; return 1; }
+    [ "$_missing" = 0 ] || { warn "binary '$_primary' not found inside the archive"; return 1; }
     return 0
 }
 
@@ -229,22 +237,22 @@ dl_gh() {
 
 install_zellij() {
     case "$PM" in brew|pacman) pm_install zellij && return 0 ;; esac
-    dl_gh zellij-org/zellij "zellij-$ARCH-unknown-linux-musl.tar.gz" tgz zellij
+    dl_install "$GH/zellij-org/zellij/releases/latest/download/zellij-$ARCH-unknown-linux-musl.tar.gz" tgz zellij
 }
 
 install_yazi() {
     case "$PM" in brew|pacman) pm_install yazi && return 0 ;; esac
-    dl_gh sxyazi/yazi "yazi-$ARCH-unknown-linux-musl.zip" zip yazi ya
+    dl_install "$GH/sxyazi/yazi/releases/latest/download/yazi-$ARCH-unknown-linux-musl.zip" zip yazi ya
 }
 
 install_helix() {
     case "$PM" in brew|pacman) pm_install helix && return 0 ;; esac
-    # Helix needs its runtime dir, so we can't use the generic single-binary helper.
+    # Helix's asset name embeds the version, so we look it up via the API.
     _u=$(gh_asset helix-editor/helix "$ARCH-linux.tar.xz")
     if [ -z "$_u" ]; then warn "helix: no linux asset matched (arch=$ARCH)"; return 1; fi
     _t=$(mktemp -d) || return 1
     fetch "$_u" "$_t/h.txz" || { warn "download failed: $_u"; rm -rf "$_t"; return 1; }
-    need tar && need xz && tar -xJf "$_t/h.txz" -C "$_t" || { warn "could not extract helix"; rm -rf "$_t"; return 1; }
+    extract "$_t/h.txz" txz "$_t" || { warn "could not extract helix"; rm -rf "$_t"; return 1; }
     _d=$(find "$_t" -maxdepth 1 -type d -name 'helix-*' | head -1)
     [ -n "$_d" ] || { warn "helix archive layout unexpected"; rm -rf "$_t"; return 1; }
     mkdir -p "$BINDIR"; install -m 0755 "$_d/hx" "$BINDIR/hx"
@@ -256,15 +264,9 @@ install_helix() {
 install_nvim() {
     case "$PM" in brew) pm_install neovim && return 0 ;; esac
     # Distro neovim is often too old for our config, so prefer the official binary.
-    case "$ARCH" in x86_64) _a=linux-x86_64 ;; aarch64) _a=linux-arm64 ;; *) _a=linux64 ;; esac
-    _u=""
-    for _pat in "nvim-$_a.tar.gz" "nvim-linux64.tar.gz"; do
-        _u=$(gh_asset neovim/neovim "$_pat"); [ -n "$_u" ] && break
-    done
-    if [ -n "$_u" ]; then
-        _t=$(mktemp -d) || return 1
-        fetch "$_u" "$_t/n.tgz" || { warn "download failed: $_u"; rm -rf "$_t"; return 1; }
-        need tar && tar -xzf "$_t/n.tgz" -C "$_t" || { warn "could not extract neovim"; rm -rf "$_t"; return 1; }
+    case "$ARCH" in x86_64) _f=nvim-linux-x86_64 ;; aarch64) _f=nvim-linux-arm64 ;; *) _f=nvim-linux64 ;; esac
+    _t=$(mktemp -d) || return 1
+    if fetch "$GH/neovim/neovim/releases/latest/download/$_f.tar.gz" "$_t/n.tgz" && extract "$_t/n.tgz" tgz "$_t"; then
         _d=$(find "$_t" -maxdepth 1 -type d -name 'nvim-*' | head -1)
         if [ -n "$_d" ]; then
             rm -rf "$HOME/.local/share/divvy-nvim"; mkdir -p "$HOME/.local/share"
@@ -272,8 +274,8 @@ install_nvim() {
             mkdir -p "$BINDIR"; ln -sf "$HOME/.local/share/divvy-nvim/bin/nvim" "$BINDIR/nvim"
             rm -rf "$_t"; return 0
         fi
-        rm -rf "$_t"
     fi
+    rm -rf "$_t"
     warn "Falling back to the distro neovim (may be older than our config needs)."
     pm_install neovim
 }
@@ -282,7 +284,7 @@ install_micro() {
     case "$PM" in brew) pm_install micro && return 0 ;; esac
     mkdir -p "$BINDIR"
     say "Installing micro via its official script…"
-    if   have curl; then ( cd "$BINDIR" && curl -fsSL https://getmic.ro | sh ) && return 0
+    if   have curl; then ( cd "$BINDIR" && curl -fgsSL https://getmic.ro | sh ) && return 0
     elif have wget; then ( cd "$BINDIR" && wget -qO- https://getmic.ro | sh ) && return 0
     else warn "micro: need curl or wget to install"; return 1; fi
 }
@@ -290,12 +292,33 @@ install_micro() {
 install_vim() { pm_install vim; }
 
 install_ghostty() {
+    # Methods per https://ghostty.org/docs/install/binary
+    # Official / distro-maintained packages first:
     case "$PM" in
-        brew)   brew install --cask ghostty && return 0 ;;
-        pacman) pm_install ghostty && return 0 ;;
+        brew)   brew install --cask ghostty && return 0 ;;   # macOS cask
+        pacman) pm_install ghostty && return 0 ;;             # Arch [extra]
+        apk)    pm_install ghostty && return 0 ;;             # Alpine testing repo
+        # openSUSE (zypper) dropped Ghostty over Zig versioning → fall through.
     esac
-    warn "Ghostty has no single-command install on this system yet."
-    info "See https://ghostty.org/docs/install for your distro — or just keep your current terminal."
+    have xbps-install && { say "Installing Ghostty (Void)…"; $SUDO xbps-install -Sy ghostty && return 0; }
+    have emerge       && { say "Installing Ghostty (Gentoo)…"; $SUDO emerge -av ghostty && return 0; }
+    have eopkg        && { say "Installing Ghostty (Solus)…"; $SUDO eopkg install -y ghostty && return 0; }
+    have nix          && { say "Installing Ghostty (Nix)…"; nix profile install nixpkgs#ghostty && return 0; }
+    # Snap is built with Ghostty's own scripts and works across most distros.
+    have snap && { say "Installing Ghostty via snap…"; $SUDO snap install ghostty --classic && return 0; }
+    # Fedora: community COPR repo.
+    if [ "$PM" = dnf ]; then
+        say "Enabling the Ghostty COPR repo (community)…"
+        $SUDO dnf -y copr enable scottames/ghostty && pm_install ghostty && return 0
+    fi
+    # Ubuntu: community installer script recommended by the Ghostty docs.
+    if [ "$PM" = apt ] && have bash && have curl; then
+        say "Installing Ghostty via the community Ubuntu installer…"
+        bash -c "$(curl -fsSL https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh)" && return 0
+    fi
+    warn "Couldn't install Ghostty automatically on this system."
+    info "See https://ghostty.org/docs/install/binary (there's also a universal AppImage)."
+    info "divvy works fine in your current terminal — Ghostty is only for nicer true-color themes."
     return 0
 }
 
@@ -303,20 +326,20 @@ install_font() {
     if [ "$PM" = brew ]; then brew install --cask font-jetbrains-mono-nerd-font || true; return 0; fi
     _fdir="$HOME/.local/share/fonts"; mkdir -p "$_fdir"
     if ls "$_fdir"/JetBrainsMono*Nerd* >/dev/null 2>&1; then ok "Nerd Font already installed"; return 0; fi
-    need unzip
-    _u=$(gh_asset ryanoasis/nerd-fonts "JetBrainsMono.zip")
-    [ -n "$_u" ] || _u="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip"
-    _t=$(mktemp -d); fetch "$_u" "$_t/f.zip" && unzip -q "$_t/f.zip" -d "$_fdir" || { rm -rf "$_t"; return 1; }
+    _t=$(mktemp -d) || return 1
+    fetch "$GH/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip" "$_t/f.zip" || { warn "font download failed"; rm -rf "$_t"; return 1; }
+    need unzip && unzip -qo "$_t/f.zip" -d "$_fdir" || { warn "could not unzip the font"; rm -rf "$_t"; return 1; }
     have fc-cache && fc-cache -f >/dev/null 2>&1
-    rm -rf "$_t"
+    rm -rf "$_t"; return 0
 }
 
 install_agent() {
     case "$1" in
         claude)
             have npm  && { npm install -g @anthropic-ai/claude-code && return 0; }
-            have curl && { curl -fsSL https://claude.ai/install.sh | sh && return 0; }
-            have wget && { wget -qO- https://claude.ai/install.sh | sh && return 0; }
+            # The native installer is a bash script — pipe to bash, not sh.
+            have bash && have curl && { curl -fgsSL https://claude.ai/install.sh | bash && return 0; }
+            have bash && have wget && { wget -qO- https://claude.ai/install.sh | bash && return 0; }
             warn "claude: install with 'npm install -g @anthropic-ai/claude-code' (needs Node.js)"; return 1 ;;
         codex)
             [ "$PM" = brew ] && { brew install --cask codex && return 0; }
@@ -339,9 +362,10 @@ install_agent() {
             [ "$PM" = brew ] && { brew install block-goose-cli && return 0; }
             warn "goose: see https://block.github.io/goose/ to install"; return 1 ;;
         agy|antigravity)
-            have curl && { curl -fsSL https://antigravity.google/cli/install.sh | sh && return 0; }
-            have wget && { wget -qO- https://antigravity.google/cli/install.sh | sh && return 0; }
-            warn "agy: install with 'curl -fsSL https://antigravity.google/cli/install.sh | sh'"; return 1 ;;
+            # Antigravity's installer is a bash script — pipe to bash, not sh.
+            have bash && have curl && { curl -fgsSL https://antigravity.google/cli/install.sh | bash && return 0; }
+            have bash && have wget && { wget -qO- https://antigravity.google/cli/install.sh | bash && return 0; }
+            warn "agy: install with 'curl -fsSL https://antigravity.google/cli/install.sh | bash'"; return 1 ;;
     esac
 }
 
@@ -457,10 +481,24 @@ else
     for s in divvy divvy-edit divvy-open divvy-theme divvy-clean; do
         chmod +x "$DIR/$s"; ln -sf "$DIR/$s" "$BINDIR/$s"
     done
+    # Make sure BINDIR is on PATH — add it to the shell rc so 'divvy' just works.
     case ":$PATH:" in
         *":$BINDIR:"*) ;;
-        *) warn "Add $BINDIR to your PATH:  export PATH=\"$BINDIR:\$PATH\""
-           info "(put that line in your ~/.bashrc or ~/.zshrc so it sticks)" ;;
+        *)
+            _rc="$HOME/.profile"
+            case "${SHELL##*/}" in
+                zsh)  _rc="$HOME/.zshrc" ;;
+                bash) [ -f "$HOME/.bashrc" ] && _rc="$HOME/.bashrc" ;;
+            esac
+            if grep -qs 'divvy: add ~/.local/bin to PATH' "$_rc"; then
+                warn "$BINDIR is set up in $_rc but not active yet."
+                info "Run:  source $_rc   (or open a new terminal)"
+            else
+                printf '\n# divvy: add ~/.local/bin to PATH\nexport PATH="%s:$PATH"\n' "$BINDIR" >> "$_rc" \
+                    && ok "Added $BINDIR to your PATH in $_rc" \
+                    || warn "Add $BINDIR to your PATH manually: export PATH=\"$BINDIR:\$PATH\""
+                info "Run:  source $_rc   (or open a new terminal) to use divvy now."
+            fi ;;
     esac
 fi
 
