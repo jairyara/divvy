@@ -6,8 +6,12 @@
 
 **English** · [Español](README.es.md)
 
-![version](https://img.shields.io/badge/version-1.0.0-bd93f9)
-![license](https://img.shields.io/badge/license-MIT-blue)
+[![release](https://img.shields.io/github/v/release/jairyara/divvy?style=flat&color=bd93f9&label=release)](https://github.com/jairyara/divvy/releases/latest)
+[![stars](https://img.shields.io/github/stars/jairyara/divvy?style=flat&color=f1fa8c)](https://github.com/jairyara/divvy/stargazers)
+[![forks](https://img.shields.io/github/forks/jairyara/divvy?style=flat&color=8be9fd)](https://github.com/jairyara/divvy/network/members)
+[![issues](https://img.shields.io/github/issues/jairyara/divvy?style=flat&color=ff79c6)](https://github.com/jairyara/divvy/issues)
+[![last commit](https://img.shields.io/github/last-commit/jairyara/divvy?style=flat&color=50fa7b)](https://github.com/jairyara/divvy/commits)
+[![license](https://img.shields.io/github/license/jairyara/divvy?style=flat&color=blue)](LICENSE)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20WSL2-lightgrey)
 ![shell](https://img.shields.io/badge/shell-POSIX%20sh-89e051)
 ![built on zellij](https://img.shields.io/badge/built%20on-zellij-orange)
