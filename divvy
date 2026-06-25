@@ -1,0 +1,129 @@
+#!/bin/sh
+# divvy — divide la terminal en: archivos (yazi) | editor | agente + terminal
+# Sobre zellij. Elige editor y agente con flags.
+set -e
+
+# --- resolver el directorio real del proyecto (sigue symlinks) ---
+SELF="$0"
+while [ -L "$SELF" ]; do
+    L="$(readlink "$SELF")"
+    case "$L" in
+        /*) SELF="$L" ;;
+        *)  SELF="$(dirname "$SELF")/$L" ;;
+    esac
+done
+DIR="$(cd "$(dirname "$SELF")" && pwd)"
+
+EDITOR_CHOICE="nvim"
+AGENT_CHOICE="claude"
+THEME_CHOICE=""
+DRY_RUN=0
+
+usage() {
+    cat <<EOF
+divvy — archivos (yazi) | editor | agente  +  terminal abajo
+
+Uso:
+  divvy [opciones]
+
+Opciones:
+  -e, --editor <nvim|helix|micro|vim>    Editor central        (def: nvim)
+  -a, --agent  <comando>                 Agente derecho        (def: claude)
+                                         Recomendados: claude, codex, gemini,
+                                         opencode, aider, agy, goose. Acepta
+                                         cualquier comando que tengas instalado.
+  -t, --theme  <dracula|catppuccin|tokyonight|gruvbox|nord>  Cambia el tema y lanza
+  -l, --list                             Lista editores/agentes/temas
+      --dry-run                          Genera el layout y lo imprime (no lanza)
+  -h, --help                             Esta ayuda
+
+Ejemplos:
+  divvy
+  divvy --editor helix --agent opencode
+  divvy -e nvim -a codex
+  divvy -a mi-agente-personalizado
+EOF
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -e|--editor) EDITOR_CHOICE="$2"; shift 2 ;;
+        -a|--agent)  AGENT_CHOICE="$2";  shift 2 ;;
+        -t|--theme)  THEME_CHOICE="$2";  shift 2 ;;
+        -l|--list)   echo "Editores: nvim, helix, micro, vim"; echo "Agentes:  claude, codex, gemini, opencode, aider, agy, goose (o cualquier comando)"; echo "Temas:    dracula, catppuccin, tokyonight, gruvbox, nord"; exit 0 ;;
+        --dry-run)   DRY_RUN=1; shift ;;
+        -h|--help)   usage; exit 0 ;;
+        *) echo "Opcion desconocida: $1" >&2; usage; exit 1 ;;
+    esac
+done
+
+case "$EDITOR_CHOICE" in
+    nvim|helix|micro|vim) ;;
+    *) echo "Editor invalido: '$EDITOR_CHOICE' (usa nvim|helix|micro|vim)" >&2; exit 1 ;;
+esac
+# El agente puede ser cualquier comando (bring-your-own); solo validamos que no esté vacío.
+[ -z "$AGENT_CHOICE" ] && { echo "Agente vacio. Usa -a <comando> (ej: claude, codex, gemini…)" >&2; exit 1; }
+
+# aplicar tema si se pidió
+if [ -n "$THEME_CHOICE" ]; then
+    divvy-theme "$THEME_CHOICE"
+fi
+
+# avisos si falta el binario (no aborta)
+ed_bin="$EDITOR_CHOICE"; [ "$EDITOR_CHOICE" = helix ] && ed_bin=hx
+command -v "$ed_bin"      >/dev/null 2>&1 || echo "AVISO: '$ed_bin' no esta instalado; el panel editor mostrara error." >&2
+command -v "$AGENT_CHOICE" >/dev/null 2>&1 || echo "AVISO: '$AGENT_CHOICE' no esta instalado; el panel agente mostrara error." >&2
+
+# limpiar restos de sesiones divvy anteriores (sockets/fifos y nvim huerfanos)
+divvy-clean >/dev/null 2>&1 || true
+
+# --- generar el layout ---
+RUNTIME="$DIR/.runtime"
+mkdir -p "$RUNTIME"
+LAYOUT="$RUNTIME/layout.kdl"
+YAZIDIR="$DIR/yazi"
+
+cat > "$LAYOUT" <<EOF
+// Generado por divvy  (editor=$EDITOR_CHOICE  agente=$AGENT_CHOICE)
+layout {
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        children
+        pane size=2 borderless=true {
+            plugin location="zellij:status-bar"
+        }
+    }
+    tab name="divvy" focus=true {
+        pane size="80%" split_direction="vertical" {
+            pane size="25%" {
+                name "archivos"
+                command "sh"
+                args "-c" "DIVVY_EDITOR=$EDITOR_CHOICE YAZI_CONFIG_HOME=$YAZIDIR yazi"
+            }
+            pane {
+                name "editor"
+                command "sh"
+                args "-c" "DIVVY_EDITOR=$EDITOR_CHOICE divvy-edit"
+            }
+            pane size="33%" {
+                name "$AGENT_CHOICE"
+                command "$AGENT_CHOICE"
+            }
+        }
+        pane size="20%" {
+            name "terminal"
+        }
+    }
+}
+EOF
+
+if [ "$DRY_RUN" = "1" ]; then
+    echo "Layout generado en: $LAYOUT"
+    echo "----------------------------------------"
+    cat "$LAYOUT"
+    exit 0
+fi
+
+exec zellij -c "$DIR/zellij/config.kdl" --layout "$LAYOUT"

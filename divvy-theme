@@ -1,0 +1,55 @@
+#!/bin/sh
+# divvy-theme — cambia el tema en TODO el stack a la vez:
+# zellij + ghostty + helix + micro + nvim.
+# Uso: divvy-theme <dracula|catppuccin|tokyonight|gruvbox|nord>
+set -e
+
+# resolver el directorio real del proyecto (sigue symlinks)
+SELF="$0"
+while [ -L "$SELF" ]; do
+    L="$(readlink "$SELF")"
+    case "$L" in /*) SELF="$L" ;; *) SELF="$(dirname "$SELF")/$L" ;; esac
+done
+DIR="$(cd "$(dirname "$SELF")" && pwd)"
+
+THEME="$1"
+[ -z "$THEME" ] && { echo "Uso: divvy-theme <dracula|catppuccin|tokyonight|gruvbox|nord>"; exit 1; }
+
+# tabla de nombres por herramienta
+case "$THEME" in
+    dracula)    Z="dracula";          G="Dracula";          H="dracula";            M="darcula" ;;
+    catppuccin) Z="catppuccin-mocha";  G="Catppuccin Mocha"; H="catppuccin_mocha";   M="one-dark" ;;
+    tokyonight) Z="tokyo-night";       G="TokyoNight";       H="tokyonight";         M="one-dark" ;;
+    gruvbox)    Z="gruvbox-dark";      G="Gruvbox Dark Hard"; H="gruvbox_dark_hard";  M="gruvbox" ;;
+    nord)       Z="nord";              G="Nord";             H="nord";               M="nord" ;;
+    *) echo "Tema invalido: '$THEME' (usa dracula|catppuccin|tokyonight|gruvbox|nord)"; exit 1 ;;
+esac
+
+ZCFG="$HOME/.config/zellij/config.kdl"
+GCFG="$HOME/.config/ghostty/config"
+HCFG="$DIR/helix/config.toml"
+MCFG="$DIR/micro/settings.json"
+
+# zellij: reemplaza la linea theme "..."
+[ -f "$ZCFG" ] && perl -i -pe 'BEGIN{$t=shift} s/^theme\s+".*"/theme "$t"/' "$Z" "$ZCFG" && echo "zellij  -> $Z"
+# ghostty: reemplaza theme = ...
+[ -f "$GCFG" ] && perl -i -pe 'BEGIN{$t=shift} s/^theme\s*=.*/theme = $t/' "$G" "$GCFG" && echo "ghostty -> $G"
+# helix: reemplaza theme = "..."
+[ -f "$HCFG" ] && perl -i -pe 'BEGIN{$t=shift} s/^theme\s*=\s*".*"/theme = "$t"/' "$H" "$HCFG" && echo "helix   -> $H"
+# micro: colorscheme en JSON
+if [ -f "$MCFG" ]; then
+    python3 - "$MCFG" "$M" <<'PY'
+import json,sys
+p,name=sys.argv[1],sys.argv[2]
+d=json.load(open(p)); d["colorscheme"]=name
+json.dump(d,open(p,"w"),indent=4); open(p,"a").write("\n")
+PY
+    echo "micro   -> $M"
+fi
+# nvim: guarda el tema en un archivo que init.lua lee
+printf '%s\n' "$THEME" > "$DIR/.theme" && echo "nvim    -> $THEME"
+
+echo
+echo "Tema '$THEME' aplicado. Para verlo:"
+echo "  - relanza divvy (zellij/helix/micro/nvim toman el cambio al reabrir)"
+echo "  - en Ghostty: Cmd+Shift+R para recargar el tema (sin reiniciar)"

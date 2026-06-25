@@ -1,0 +1,16 @@
+" divvy · config de vim (se carga con: vim -u este-archivo)
+set nocompatible
+syntax on
+filetype plugin indent on
+set number
+set mouse=a
+set expandtab shiftwidth=2 tabstop=2 smarttab
+set ignorecase smartcase
+set incsearch hlsearch
+set cursorline
+set scrolloff=6
+set laststatus=2
+if has('termguicolors')
+  set termguicolors
+endif
+silent! colorscheme habamax

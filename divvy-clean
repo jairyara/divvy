@@ -1,0 +1,52 @@
+#!/bin/sh
+# Limpia restos de divvy. Dos modos:
+#   divvy-clean            -> reapea sesiones huerfanas (lo llama `divvy` al iniciar)
+#   divvy-clean <sesion>   -> limpia esa sesion concreta
+#
+# Con la config de zellij (on_force_close "quit") cerrar Ghostty ya mata la
+# sesion entera, asi que esto es un cinturon de seguridad para casos sucios:
+# crashes, `kill -9`, o restos de versiones anteriores.
+
+# Mata por patron de linea de comando; primero TERM, y si insisten, KILL.
+kill_match() {
+    pids=$(pgrep -f "$1" 2>/dev/null) || return 0
+    [ -z "$pids" ] && return 0
+    kill $pids 2>/dev/null
+    sleep 0.2
+    pids=$(pgrep -f "$1" 2>/dev/null)
+    [ -n "$pids" ] && kill -9 $pids 2>/dev/null
+    return 0
+}
+
+clean_session() {
+    s="$1"
+    # servidor nvim (--listen, y su hijo --embed) y clientes (--remote)
+    kill_match "nvim.*--listen /tmp/divvy-${s}-nvim.sock"
+    kill_match "nvim --server /tmp/divvy-${s}-nvim.sock"
+    rm -f "/tmp/divvy-${s}-nvim.sock" "/tmp/divvy-${s}-edit.fifo"
+}
+
+# Clientes --remote colgados de CUALQUIER sesion divvy: siempre seguro matarlos
+# (en condiciones normales viven milisegundos; si persisten, estan atascados).
+kill_match "nvim --server /tmp/divvy-.*-nvim.sock --remote"
+
+# Acciones de zellij colgadas que dispara divvy-open (move-focus). En condiciones
+# normales viven milisegundos; si persisten, son huerfanos -> a la basura.
+kill_match "zellij action move-focus right"
+
+# Modo sesion concreta.
+if [ -n "$1" ]; then
+    clean_session "$1"
+    zellij delete-session "$1" --force >/dev/null 2>&1 || true
+    exit 0
+fi
+
+# Modo reapeo: limpia sesiones divvy cuyo zellij ya no esta vivo.
+alive=$(zellij list-sessions -ns 2>/dev/null)
+for sock in /tmp/divvy-*-nvim.sock; do
+    [ -e "$sock" ] || continue
+    name=${sock#/tmp/divvy-}; name=${name%-nvim.sock}
+    if ! printf '%s\n' "$alive" | grep -qx "$name"; then
+        clean_session "$name"
+    fi
+done

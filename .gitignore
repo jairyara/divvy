@@ -1,0 +1,10 @@
+# layout generado en cada lanzamiento
+.runtime/
+
+# datos/estado de nvim (plugins instalados por lazy.nvim)
+.local/
+.cache/
+
+# basura del sistema
+.DS_Store
+*.swp

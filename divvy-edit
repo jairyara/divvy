@@ -1,0 +1,52 @@
+#!/bin/sh
+# Corre el editor en el panel central de divvy, con su config bonita (Dracula).
+#  - nvim: arranca como servidor (yazi le envia archivos por socket, en vivo).
+#  - helix/micro/vim: espera rutas por una FIFO y abre el archivo recibido.
+
+# resolver el directorio real del proyecto (sigue symlinks)
+SELF="$0"
+while [ -L "$SELF" ]; do
+    L="$(readlink "$SELF")"
+    case "$L" in
+        /*) SELF="$L" ;;
+        *)  SELF="$(dirname "$SELF")/$L" ;;
+    esac
+done
+DIR="$(cd "$(dirname "$SELF")" && pwd)"
+
+# paths por sesion (evita colisiones si hay varios divvy abiertos)
+SESSION="${ZELLIJ_SESSION_NAME:-default}"
+SOCK="/tmp/divvy-${SESSION}-nvim.sock"
+FIFO="/tmp/divvy-${SESSION}-edit.fifo"
+
+case "${DIVVY_EDITOR:-nvim}" in
+    nvim)
+        # config aislada en el proyecto
+        export XDG_CONFIG_HOME="$DIR/.config"
+        export XDG_DATA_HOME="$DIR/.local/share"
+        export XDG_STATE_HOME="$DIR/.local/state"
+        # si nvim se cierra (p.ej. :q), se reabre solo y vuelve a escuchar el socket
+        while true; do
+            rm -f "$SOCK"
+            nvim --listen "$SOCK"
+            sleep 0.3
+        done
+        ;;
+    helix) LABEL="helix"; run_editor() { hx --config "$DIR/helix/config.toml" "$@"; } ;;
+    micro) LABEL="micro"; run_editor() { micro -config-dir "$DIR/micro" "$@"; } ;;
+    vim)   LABEL="vim";   run_editor() { vim -u "$DIR/vim/vimrc" "$@"; } ;;
+    *)     LABEL="${DIVVY_EDITOR}"; run_editor() { "${DIVVY_EDITOR}" "$@"; } ;;
+esac
+
+hint() {
+    clear
+    printf '\n  divvy · %s\n  Elige un archivo en yazi (izquierda) y pulsa Enter para editarlo aqui.\n' "$LABEL"
+}
+
+rm -f "$FIFO"
+mkfifo "$FIFO"
+hint
+while IFS= read -r f < "$FIFO"; do
+    [ -n "$f" ] && run_editor "$f"
+    hint
+done

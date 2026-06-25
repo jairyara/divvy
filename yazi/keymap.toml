@@ -1,0 +1,14 @@
+# Keymap de yazi SOLO para divvy (se activa con YAZI_CONFIG_HOME).
+# `prepend_keymap` se inserta ANTES de los binds por defecto y tiene prioridad,
+# asi que el resto de teclas estandar de yazi siguen funcionando.
+
+[[mgr.prepend_keymap]]
+on  = "a"
+run = "plugin create-open"
+desc = "Crear archivo/carpeta y abrirlo en el editor"
+
+# 'a' por defecto solo crea (sin abrir). Lo dejamos disponible en Shift+A.
+[[mgr.prepend_keymap]]
+on  = "A"
+run = "create"
+desc = "Crear archivo/carpeta (sin abrir)"

@@ -1,0 +1,11 @@
+{
+    "colorscheme": "one-dark",
+    "tabsize": 2,
+    "tabstospaces": true,
+    "softwrap": false,
+    "scrollbar": true,
+    "mouse": true,
+    "cursorline": true,
+    "ruler": true,
+    "savecursor": true
+}

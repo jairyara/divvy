@@ -1,0 +1,27 @@
+# Config de yazi SOLO para divvy (se activa con YAZI_CONFIG_HOME).
+
+# Vista de una sola columna: sin panel de padre ni de preview.
+# ratio = [padre, actual, preview]
+[mgr]
+ratio = [0, 1, 0]
+
+# Al pulsar Enter, delega en divvy-open, que manda el archivo al editor
+# elegido (segun DIVVY_EDITOR) y mueve el foco a ese panel.
+# OJO: yazi ejecuta el run via shell y pasa las rutas como argumentos
+# posicionales ("$@"), NO con placeholder %s. divvy-open las recibe en "$@".
+[opener]
+edit = [
+  { run = 'divvy-open "$@"', block = false, desc = "Abrir en el editor de divvy" },
+]
+
+# Solo el texto/codigo va al editor; imagenes, PDF, video, etc. usan la app del
+# sistema (open/xdg-open) gracias a las reglas por defecto de yazi.
+[open]
+prepend_rules = [
+  { mime = "text/*", use = "edit" },
+  { mime = "application/json", use = "edit" },
+  { mime = "application/{,x-}javascript", use = "edit" },
+  { mime = "application/x-{shellscript,wine-extension-ini}", use = "edit" },
+  { mime = "application/{xml,toml,yaml,x-yaml}", use = "edit" },
+  { mime = "inode/{,x-}empty", use = "edit" },
+]
