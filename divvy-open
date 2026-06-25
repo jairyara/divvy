@@ -1,15 +1,15 @@
 #!/bin/sh
-# Llamado por yazi al pulsar Enter sobre un archivo.
-# Manda la ruta al editor del panel central (segun DIVVY_EDITOR) y
-# mueve el foco a ese panel.
-# paths por sesion (evita colisiones si hay varios divvy abiertos)
+# Called by yazi when you press Enter on a file.
+# Sends the path to the center-pane editor (per DIVVY_EDITOR) and
+# moves focus to that pane.
+# per-session paths (avoid collisions when several divvy windows are open)
 SESSION="${ZELLIJ_SESSION_NAME:-default}"
 SOCK="/tmp/divvy-${SESSION}-nvim.sock"
 FIFO="/tmp/divvy-${SESSION}-edit.fifo"
 
-# Timeout portable: si el editor/zellij se cuelga, el proceso NO queda zombie.
-# Sin esto, un nvim atascado deja un `--remote` colgado para siempre y, Enter
-# tras Enter, se acumulan instancias (el bug que perseguimos).
+# Portable timeout: if the editor/zellij hangs, the process does NOT become a zombie.
+# Without this, a stuck nvim leaves a dangling `--remote` forever, and Enter after
+# Enter piles up instances (the bug we chased down).
 run_to() {
   t="$1"; shift
   if   command -v gtimeout >/dev/null 2>&1; then gtimeout "$t" "$@"
@@ -20,15 +20,15 @@ run_to() {
 
 case "${DIVVY_EDITOR:-nvim}" in
   nvim)
-    # nvim corre como servidor: abrimos el archivo en la instancia viva.
-    # Si el server tarda >5s, abortamos en vez de colgarnos.
+    # nvim runs as a server: open the file in the live instance.
+    # If the server takes >5s, give up instead of hanging.
     run_to 5 nvim --server "$SOCK" --remote "$@" 2>/dev/null || true
     ;;
   *)
-    # helix/micro/vim no tienen socket: mandamos la ruta por la FIFO
+    # helix/micro/vim have no socket: send the path over the FIFO
     printf '%s\n' "$@" > "$FIFO" &
     ;;
 esac
 
-# saltar el foco al panel del editor (a la derecha de yazi)
+# move focus to the editor pane (to the right of yazi)
 run_to 3 zellij action move-focus right >/dev/null 2>&1 || true

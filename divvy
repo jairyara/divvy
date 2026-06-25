@@ -1,9 +1,9 @@
 #!/bin/sh
-# divvy — divide la terminal en: archivos (yazi) | editor | agente + terminal
-# Sobre zellij. Elige editor y agente con flags.
+# divvy — splits the terminal into: files (yazi) | editor | agent  +  terminal
+# Built on zellij. Pick the editor and agent with flags.
 set -e
 
-# --- resolver el directorio real del proyecto (sigue symlinks) ---
+# --- resolve the real project directory (follow symlinks) ---
 SELF="$0"
 while [ -L "$SELF" ]; do
     L="$(readlink "$SELF")"
@@ -21,27 +21,27 @@ DRY_RUN=0
 
 usage() {
     cat <<EOF
-divvy — archivos (yazi) | editor | agente  +  terminal abajo
+divvy — files (yazi) | editor | agent  +  terminal at the bottom
 
-Uso:
-  divvy [opciones]
+Usage:
+  divvy [options]
 
-Opciones:
-  -e, --editor <nvim|helix|micro|vim>    Editor central        (def: nvim)
-  -a, --agent  <comando>                 Agente derecho        (def: claude)
-                                         Recomendados: claude, codex, gemini,
-                                         opencode, aider, agy, goose. Acepta
-                                         cualquier comando que tengas instalado.
-  -t, --theme  <dracula|catppuccin|tokyonight|gruvbox|nord>  Cambia el tema y lanza
-  -l, --list                             Lista editores/agentes/temas
-      --dry-run                          Genera el layout y lo imprime (no lanza)
-  -h, --help                             Esta ayuda
+Options:
+  -e, --editor <nvim|helix|micro|vim>    Center editor          (default: nvim)
+  -a, --agent  <command>                 Right-hand agent       (default: claude)
+                                         Suggested: claude, codex, gemini,
+                                         opencode, aider, agy, goose. Accepts
+                                         any command you have installed.
+  -t, --theme  <dracula|catppuccin|tokyonight|gruvbox|nord>  Set the theme and launch
+  -l, --list                             List editors/agents/themes
+      --dry-run                          Generate the layout and print it (don't launch)
+  -h, --help                             This help
 
-Ejemplos:
+Examples:
   divvy
   divvy --editor helix --agent opencode
   divvy -e nvim -a codex
-  divvy -a mi-agente-personalizado
+  divvy -a my-custom-agent
 EOF
 }
 
@@ -50,41 +50,41 @@ while [ $# -gt 0 ]; do
         -e|--editor) EDITOR_CHOICE="$2"; shift 2 ;;
         -a|--agent)  AGENT_CHOICE="$2";  shift 2 ;;
         -t|--theme)  THEME_CHOICE="$2";  shift 2 ;;
-        -l|--list)   echo "Editores: nvim, helix, micro, vim"; echo "Agentes:  claude, codex, gemini, opencode, aider, agy, goose (o cualquier comando)"; echo "Temas:    dracula, catppuccin, tokyonight, gruvbox, nord"; exit 0 ;;
+        -l|--list)   echo "Editors: nvim, helix, micro, vim"; echo "Agents:  claude, codex, gemini, opencode, aider, agy, goose (or any command)"; echo "Themes:  dracula, catppuccin, tokyonight, gruvbox, nord"; exit 0 ;;
         --dry-run)   DRY_RUN=1; shift ;;
         -h|--help)   usage; exit 0 ;;
-        *) echo "Opcion desconocida: $1" >&2; usage; exit 1 ;;
+        *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
     esac
 done
 
 case "$EDITOR_CHOICE" in
     nvim|helix|micro|vim) ;;
-    *) echo "Editor invalido: '$EDITOR_CHOICE' (usa nvim|helix|micro|vim)" >&2; exit 1 ;;
+    *) echo "Invalid editor: '$EDITOR_CHOICE' (use nvim|helix|micro|vim)" >&2; exit 1 ;;
 esac
-# El agente puede ser cualquier comando (bring-your-own); solo validamos que no esté vacío.
-[ -z "$AGENT_CHOICE" ] && { echo "Agente vacio. Usa -a <comando> (ej: claude, codex, gemini…)" >&2; exit 1; }
+# The agent can be any command (bring-your-own); we only check it isn't empty.
+[ -z "$AGENT_CHOICE" ] && { echo "Empty agent. Use -a <command> (e.g. claude, codex, gemini…)" >&2; exit 1; }
 
-# aplicar tema si se pidió
+# apply the theme if one was requested
 if [ -n "$THEME_CHOICE" ]; then
     divvy-theme "$THEME_CHOICE"
 fi
 
-# avisos si falta el binario (no aborta)
+# warn if a binary is missing (doesn't abort)
 ed_bin="$EDITOR_CHOICE"; [ "$EDITOR_CHOICE" = helix ] && ed_bin=hx
-command -v "$ed_bin"      >/dev/null 2>&1 || echo "AVISO: '$ed_bin' no esta instalado; el panel editor mostrara error." >&2
-command -v "$AGENT_CHOICE" >/dev/null 2>&1 || echo "AVISO: '$AGENT_CHOICE' no esta instalado; el panel agente mostrara error." >&2
+command -v "$ed_bin"      >/dev/null 2>&1 || echo "WARNING: '$ed_bin' is not installed; the editor pane will show an error." >&2
+command -v "$AGENT_CHOICE" >/dev/null 2>&1 || echo "WARNING: '$AGENT_CHOICE' is not installed; the agent pane will show an error." >&2
 
-# limpiar restos de sesiones divvy anteriores (sockets/fifos y nvim huerfanos)
+# clean up leftovers from previous divvy sessions (sockets/fifos and orphan nvim)
 divvy-clean >/dev/null 2>&1 || true
 
-# --- generar el layout ---
+# --- generate the layout ---
 RUNTIME="$DIR/.runtime"
 mkdir -p "$RUNTIME"
 LAYOUT="$RUNTIME/layout.kdl"
 YAZIDIR="$DIR/yazi"
 
 cat > "$LAYOUT" <<EOF
-// Generado por divvy  (editor=$EDITOR_CHOICE  agente=$AGENT_CHOICE)
+// Generated by divvy  (editor=$EDITOR_CHOICE  agent=$AGENT_CHOICE)
 layout {
     default_tab_template {
         pane size=1 borderless=true {
@@ -98,7 +98,7 @@ layout {
     tab name="divvy" focus=true {
         pane size="80%" split_direction="vertical" {
             pane size="25%" {
-                name "archivos"
+                name "files"
                 command "sh"
                 args "-c" "DIVVY_EDITOR=$EDITOR_CHOICE YAZI_CONFIG_HOME=$YAZIDIR yazi"
             }
@@ -120,7 +120,7 @@ layout {
 EOF
 
 if [ "$DRY_RUN" = "1" ]; then
-    echo "Layout generado en: $LAYOUT"
+    echo "Layout generated at: $LAYOUT"
     echo "----------------------------------------"
     cat "$LAYOUT"
     exit 0

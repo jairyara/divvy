@@ -1,9 +1,9 @@
 #!/bin/sh
-# Corre el editor en el panel central de divvy, con su config bonita (Dracula).
-#  - nvim: arranca como servidor (yazi le envia archivos por socket, en vivo).
-#  - helix/micro/vim: espera rutas por una FIFO y abre el archivo recibido.
+# Runs the editor in divvy's center pane, with its themed config (Dracula).
+#  - nvim: starts as a server (yazi sends files over a socket, live).
+#  - helix/micro/vim: waits for paths on a FIFO and opens the file it receives.
 
-# resolver el directorio real del proyecto (sigue symlinks)
+# resolve the real project directory (follow symlinks)
 SELF="$0"
 while [ -L "$SELF" ]; do
     L="$(readlink "$SELF")"
@@ -14,18 +14,18 @@ while [ -L "$SELF" ]; do
 done
 DIR="$(cd "$(dirname "$SELF")" && pwd)"
 
-# paths por sesion (evita colisiones si hay varios divvy abiertos)
+# per-session paths (avoid collisions when several divvy windows are open)
 SESSION="${ZELLIJ_SESSION_NAME:-default}"
 SOCK="/tmp/divvy-${SESSION}-nvim.sock"
 FIFO="/tmp/divvy-${SESSION}-edit.fifo"
 
 case "${DIVVY_EDITOR:-nvim}" in
     nvim)
-        # config aislada en el proyecto
+        # project-isolated config
         export XDG_CONFIG_HOME="$DIR/.config"
         export XDG_DATA_HOME="$DIR/.local/share"
         export XDG_STATE_HOME="$DIR/.local/state"
-        # si nvim se cierra (p.ej. :q), se reabre solo y vuelve a escuchar el socket
+        # if nvim quits (e.g. :q), it relaunches itself and listens on the socket again
         while true; do
             rm -f "$SOCK"
             nvim --listen "$SOCK"
@@ -40,7 +40,7 @@ esac
 
 hint() {
     clear
-    printf '\n  divvy · %s\n  Elige un archivo en yazi (izquierda) y pulsa Enter para editarlo aqui.\n' "$LABEL"
+    printf '\n  divvy · %s\n  Pick a file in yazi (left) and press Enter to edit it here.\n' "$LABEL"
 }
 
 rm -f "$FIFO"

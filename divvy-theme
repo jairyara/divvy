@@ -1,10 +1,10 @@
 #!/bin/sh
-# divvy-theme — cambia el tema en TODO el stack a la vez:
+# divvy-theme — changes the theme across the WHOLE stack at once:
 # zellij + ghostty + helix + micro + nvim.
-# Uso: divvy-theme <dracula|catppuccin|tokyonight|gruvbox|nord>
+# Usage: divvy-theme <dracula|catppuccin|tokyonight|gruvbox|nord>
 set -e
 
-# resolver el directorio real del proyecto (sigue symlinks)
+# resolve the real project directory (follow symlinks)
 SELF="$0"
 while [ -L "$SELF" ]; do
     L="$(readlink "$SELF")"
@@ -13,16 +13,16 @@ done
 DIR="$(cd "$(dirname "$SELF")" && pwd)"
 
 THEME="$1"
-[ -z "$THEME" ] && { echo "Uso: divvy-theme <dracula|catppuccin|tokyonight|gruvbox|nord>"; exit 1; }
+[ -z "$THEME" ] && { echo "Usage: divvy-theme <dracula|catppuccin|tokyonight|gruvbox|nord>"; exit 1; }
 
-# tabla de nombres por herramienta
+# theme-name table per tool
 case "$THEME" in
     dracula)    Z="dracula";          G="Dracula";          H="dracula";            M="darcula" ;;
     catppuccin) Z="catppuccin-mocha";  G="Catppuccin Mocha"; H="catppuccin_mocha";   M="one-dark" ;;
     tokyonight) Z="tokyo-night";       G="TokyoNight";       H="tokyonight";         M="one-dark" ;;
     gruvbox)    Z="gruvbox-dark";      G="Gruvbox Dark Hard"; H="gruvbox_dark_hard";  M="gruvbox" ;;
     nord)       Z="nord";              G="Nord";             H="nord";               M="nord" ;;
-    *) echo "Tema invalido: '$THEME' (usa dracula|catppuccin|tokyonight|gruvbox|nord)"; exit 1 ;;
+    *) echo "Invalid theme: '$THEME' (use dracula|catppuccin|tokyonight|gruvbox|nord)"; exit 1 ;;
 esac
 
 ZCFG="$HOME/.config/zellij/config.kdl"
@@ -30,13 +30,13 @@ GCFG="$HOME/.config/ghostty/config"
 HCFG="$DIR/helix/config.toml"
 MCFG="$DIR/micro/settings.json"
 
-# zellij: reemplaza la linea theme "..."
+# zellij: replace the theme "..." line
 [ -f "$ZCFG" ] && perl -i -pe 'BEGIN{$t=shift} s/^theme\s+".*"/theme "$t"/' "$Z" "$ZCFG" && echo "zellij  -> $Z"
-# ghostty: reemplaza theme = ...
+# ghostty: replace theme = ...
 [ -f "$GCFG" ] && perl -i -pe 'BEGIN{$t=shift} s/^theme\s*=.*/theme = $t/' "$G" "$GCFG" && echo "ghostty -> $G"
-# helix: reemplaza theme = "..."
+# helix: replace theme = "..."
 [ -f "$HCFG" ] && perl -i -pe 'BEGIN{$t=shift} s/^theme\s*=\s*".*"/theme = "$t"/' "$H" "$HCFG" && echo "helix   -> $H"
-# micro: colorscheme en JSON
+# micro: colorscheme in JSON
 if [ -f "$MCFG" ]; then
     python3 - "$MCFG" "$M" <<'PY'
 import json,sys
@@ -46,10 +46,10 @@ json.dump(d,open(p,"w"),indent=4); open(p,"a").write("\n")
 PY
     echo "micro   -> $M"
 fi
-# nvim: guarda el tema en un archivo que init.lua lee
+# nvim: save the theme to a file that init.lua reads
 printf '%s\n' "$THEME" > "$DIR/.theme" && echo "nvim    -> $THEME"
 
 echo
-echo "Tema '$THEME' aplicado. Para verlo:"
-echo "  - relanza divvy (zellij/helix/micro/nvim toman el cambio al reabrir)"
-echo "  - en Ghostty: Cmd+Shift+R para recargar el tema (sin reiniciar)"
+echo "Theme '$THEME' applied. To see it:"
+echo "  - relaunch divvy (zellij/helix/micro/nvim pick up the change on reopen)"
+echo "  - in Ghostty: Cmd+Shift+R to reload the theme (no restart needed)"

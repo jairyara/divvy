@@ -1,58 +1,59 @@
-# Contribuir a divvy
+# Contributing to divvy
 
-divvy es un puñado de scripts POSIX `sh` que generan un layout de [zellij](https://zellij.dev)
-y configuran las herramientas de cada panel. No hay build: editas los scripts y listo.
+divvy is a handful of POSIX `sh` scripts that generate a [zellij](https://zellij.dev) layout
+and configure the tools in each pane. There's no build step: you edit the scripts and you're
+done.
 
-## Estructura
+## Structure
 
-| Archivo | Rol |
+| File | Role |
 |---|---|
-| `divvy` | Lee flags (`-e/-a/-t`) → genera `.runtime/layout.kdl` → lanza zellij |
-| `divvy-edit` | Corre el editor central (nvim por socket; resto por FIFO) |
-| `divvy-open` | Lo que yazi llama al dar Enter (manda el archivo al editor) |
-| `divvy-theme` | Cambia el tema en zellij + ghostty + helix + micro + nvim |
-| `install.sh` | Instalador guiado/modular |
-| `.config/nvim/` · `helix/` · `micro/` · `vim/` · `yazi/` | Configs aisladas en el repo |
+| `divvy` | Reads flags (`-e/-a/-t`) → generates `.runtime/layout.kdl` → launches zellij |
+| `divvy-edit` | Runs the center editor (nvim via socket; the rest via FIFO) |
+| `divvy-open` | What yazi calls on Enter (sends the file to the editor) |
+| `divvy-theme` | Changes the theme across zellij + ghostty + helix + micro + nvim |
+| `install.sh` | Guided/modular installer |
+| `.config/nvim/` · `helix/` · `micro/` · `vim/` · `yazi/` | Configs isolated in the repo |
 
-Tras tocar algo, valida sintaxis: `sh -n divvy divvy-edit divvy-open divvy-theme install.sh`.
+After changing anything, validate the syntax: `sh -n divvy divvy-edit divvy-open divvy-theme install.sh`.
 
-## Añadir un editor
+## Adding an editor
 
-1. **`divvy`**: agrega el nombre al `case` de validación de `--editor`.
-2. **`divvy-edit`**: agrega una rama. Si el editor tiene "remote/socket" (como nvim), úsalo
-   para abrir varios archivos en vivo; si no, define `run_editor()` y usará la FIFO (un
-   archivo a la vez). Apunta su config a `$DIR/tu-editor/`.
-3. **`divvy-open`**: si el editor usa socket, añade su rama; si usa FIFO, ya está cubierto por
-   el caso `*`.
-4. **`install.sh`**: añade el caso en el `for ed in $SEL_EDITORS` (cmd + paquete brew/pacman).
-5. Crea su config en `tu-editor/` con el tema por defecto (dracula).
+1. **`divvy`**: add the name to the `--editor` validation `case`.
+2. **`divvy-edit`**: add a branch. If the editor has a "remote/socket" (like nvim), use it to
+   open several files live; otherwise define `run_editor()` and it will use the FIFO (one file
+   at a time). Point its config at `$DIR/your-editor/`.
+3. **`divvy-open`**: if the editor uses a socket, add its branch; if it uses a FIFO, the `*`
+   case already covers it.
+4. **`install.sh`**: add the case in `for ed in $SEL_EDITORS` and a matching `install_<editor>`
+   function (package manager first, prebuilt binary as a fallback).
+5. Create its config under `your-editor/` with the default theme (dracula).
 
-## Añadir un agente
+## Adding an agent
 
-No hace falta tocar código: `-a` acepta **cualquier comando** en el PATH. Para que aparezca
-como recomendado:
+No code change needed: `-a` accepts **any command** on the PATH. To list it as recommended:
 
-1. **`divvy`**: añádelo al texto de `--list` y de la ayuda.
-2. **`install.sh`**: añade un caso en `for ag in $SEL_AGENTS` con su método de instalación.
-3. **`README.md`**: súmalo a la tabla de [Agentes](README.md#agentes).
+1. **`divvy`**: add it to the `--list` text and the help.
+2. **`install.sh`**: add a case in `install_agent` with its install method.
+3. **`README.md`** / **`README.es.md`**: add it to the [Agents](README.md#agents) table.
 
-## Añadir un tema
+## Adding a theme
 
-1. **`divvy-theme`**: agrega una fila al `case "$THEME"` con el nombre del tema en cada
-   herramienta: `Z` (zellij), `G` (ghostty), `H` (helix), `M` (micro).
-   - Verifica los nombres exactos:
+1. **`divvy-theme`**: add a row to `case "$THEME"` with the theme's name in each tool:
+   `Z` (zellij), `G` (ghostty), `H` (helix), `M` (micro).
+   - Verify the exact names:
      - ghostty: `ls "/Applications/Ghostty.app/Contents/Resources/ghostty/themes/"`
      - helix: `ls "$(brew --prefix)"/Cellar/helix/*/libexec/runtime/themes/`
-2. **`.config/nvim/init.lua`**: añade la entrada a `MAP` (`cs` = colorscheme, `lualine` = tema
-   de la barra) y agrega el plugin del tema en `require("lazy").setup({ ... })`.
-3. **`divvy`**: súmalo al `case` de validación de `--theme` y al texto de `--list`.
+2. **`.config/nvim/init.lua`**: add the entry to `MAP` (`cs` = colorscheme, `lualine` = status
+   bar theme) and add the theme plugin in `require("lazy").setup({ ... })`.
+3. **`divvy`**: add it to the `--theme` validation `case` and to the `--list` text.
 
-Consejo: elige variantes con fondos distintos entre sí (ver el set actual en `divvy-theme`)
-para que el cambio se note.
+Tip: pick variants with backgrounds that differ from each other (see the current set in
+`divvy-theme`) so the change is noticeable.
 
-## Estilo
+## Style
 
-- POSIX `sh` (no bashismos): que pase `sh -n`.
-- Rutas del proyecto siempre vía el `$DIR` que resuelven los scripts (no hardcodear).
-- Mantén las configs **dentro del repo** (no escribir en `~/.config` del usuario salvo zellij
-  y ghostty, que son globales por naturaleza).
+- POSIX `sh` (no bashisms): it must pass `sh -n`.
+- Always reference project paths via the `$DIR` the scripts resolve (don't hardcode).
+- Keep configs **inside the repo** (don't write to the user's `~/.config` except for zellij
+  and ghostty, which are global by nature).

@@ -1,231 +1,236 @@
 # divvy
 
+**English** · [Español](README.es.md)
+
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20WSL2-lightgrey)
 ![shell](https://img.shields.io/badge/shell-POSIX%20sh-89e051)
 ![built on zellij](https://img.shields.io/badge/built%20on-zellij-orange)
 ![themes](https://img.shields.io/badge/themes-5-bd93f9)
 
-Una terminal dividida estilo *tmux/omarchy* sobre **zellij**: explorador de archivos a la
-izquierda, editor en el centro, agente de IA a la derecha y una terminal abajo — todo con
-tema Dracula (y 4 temas más intercambiables).
+A split terminal in the style of *tmux/omarchy*, built on **zellij**: a file explorer on the
+left, an editor in the center, an AI agent on the right, and a terminal at the bottom — all
+with the Dracula theme (plus 4 more swappable themes).
 
 ```
 ┌──────────────────────── tab-bar ────────────────────────┐
-│   archivos    │      editor        │      agente         │
+│    files      │      editor        │      agent          │
 │   (yazi)      │   (nvim/helix/…)   │  (claude/agy/…)     │
 ├───────────────┴────────────────────┴─────────────────────┤
 │   terminal                                                │
 ├──────────────────────── status-bar ─────────────────────┤
 ```
 
-Al pulsar **Enter** sobre un archivo en yazi, se abre en el editor del centro y el foco salta
-solo a ese panel.
+Press **Enter** on a file in yazi and it opens in the center editor, with focus jumping
+straight to that pane.
 
 ---
 
-## Requisitos
+## Requirements
 
-| Herramienta | Rol | Obligatorio |
+| Tool | Role | Required |
 |---|---|---|
-| [zellij](https://zellij.dev) | Multiplexor (divide la pantalla) | ✅ |
-| [yazi](https://yazi-rs.github.io) | Explorador de archivos (panel izquierdo) | ✅ |
-| nvim / helix / micro / vim | Editor (panel central) | al menos uno |
-| un agente de IA (CLI) | Panel derecho — ver [Agentes](#agentes) | al menos uno |
-| [Ghostty](https://ghostty.org) | Terminal con *true color* (recomendada) | opcional |
-| JetBrainsMono Nerd Font | Iconos en yazi/lualine | opcional |
+| [zellij](https://zellij.dev) | Multiplexer (splits the screen) | ✅ |
+| [yazi](https://yazi-rs.github.io) | File explorer (left pane) | ✅ |
+| nvim / helix / micro / vim | Editor (center pane) | at least one |
+| an AI agent (CLI) | Right pane — see [Agents](#agents) | at least one |
+| [Ghostty](https://ghostty.org) | Terminal with *true color* (recommended) | optional |
+| JetBrainsMono Nerd Font | Icons in yazi/lualine | optional |
 
-> **Terminal:** funciona en cualquier terminal, pero para que los temas se vean fieles
-> necesitas *true color*. Apple Terminal solo da 256 colores — usa **Ghostty**, WezTerm o
-> Alacritty.
+> **Terminal:** it works in any terminal, but for the themes to look right you need
+> *true color*. Apple Terminal only gives 256 colors — use **Ghostty**, WezTerm, or Alacritty.
 
 ---
 
-## Instalación
+## Installation
 
 ```sh
-git clone <tu-repo> ~/divvy
+git clone <your-repo> ~/divvy
 cd ~/divvy
-./install.sh          # guiado: eliges qué instalar (no todo)
+./install.sh          # guided: you pick what to install (not everything)
 ```
 
-El instalador es **interactivo**: el core (zellij + yazi) es obligatorio, y eliges editores,
-terminal (Ghostty), fuente y agentes. Detecta lo ya instalado y lo salta.
+The installer is **interactive**: the core (zellij + yazi) is required, and you choose
+editors, terminal (Ghostty), font, and agents with a checkbox menu (**space** to toggle,
+**↑/↓** to move, **Enter** to confirm). It detects what's already installed and skips it.
 
-**Sin preguntas (flags):**
+It tries your system package manager first — **brew** (macOS/Linux), **apt**, **dnf**,
+**pacman**, **zypper**, or **apk**. If a tool isn't packaged for your system, it downloads the
+official prebuilt binary into `~/.local/bin`, so you never have to install things by hand.
+
+**No prompts (flags):**
 
 ```sh
-./install.sh --minimal                 # core + helix, nada más
-./install.sh --all                     # todo
+./install.sh --minimal                 # core + nvim, nothing else
+./install.sh --all                     # everything
 ./install.sh --editors "helix nvim" --agents "codex gemini" --no-ghostty --yes
-./install.sh --dry-run                 # muestra qué haría, sin instalar
-BINDIR=/usr/local/bin ./install.sh     # cambia dónde van los symlinks
+./install.sh --dry-run                 # show what it would do, without installing
+BINDIR=/usr/local/bin ./install.sh     # change where the symlinks go
 ```
 
-| Flag | Qué hace |
+| Flag | What it does |
 |---|---|
-| `--minimal` | solo core + helix |
-| `--all` | editores, Ghostty, fuente y agentes (brew) |
-| `--editors "..."` | lista de editores (helix nvim micro vim) |
-| `--agents "..."` | agentes a instalar vía brew (codex gemini opencode aider goose) |
-| `--no-ghostty` / `--no-font` | omite Ghostty / la fuente |
-| `--yes` | sin confirmación · `--dry-run` simula |
-
-Instala con brew (macOS / Linux) o pacman (Arch); en otros casos imprime los comandos.
+| `--minimal` | core + nvim only |
+| `--all` | editors, Ghostty, font, and agents |
+| `--editors "..."` | list of editors (nvim helix micro vim) |
+| `--agents "..."` | agents to install (codex gemini opencode aider goose) |
+| `--no-ghostty` / `--no-font` | skip Ghostty / the font |
+| `--yes` | no confirmation · `--dry-run` simulates |
 
 ---
 
-## Uso
+## Usage
 
 ```sh
-divvy                              # nvim + claude (por defecto)
+divvy                              # nvim + claude (defaults)
 divvy -e helix -a agy             # helix + antigravity
 divvy --editor micro --agent claude
-divvy --theme nord                 # cambia tema y lanza
-divvy --list                       # ver editores, agentes y temas
+divvy --theme nord                 # set theme and launch
+divvy --list                       # show editors, agents, and themes
 divvy --help
 ```
 
-> **nvim es el editor por defecto**: corre como servidor, así cada archivo que abres desde
-> yazi se acumula como **pestaña** (bufferline). Trae LSP y no choca con zellij (`:w` guardar,
-> `:q` cerrar). helix/micro/vim abren un archivo a la vez (sin socket) → `-e helix`.
+> **nvim is the default editor**: it runs as a server, so every file you open from yazi piles
+> up as a **tab** (bufferline). It ships with LSP and doesn't clash with zellij (`:w` to save,
+> `:q` to close). helix/micro/vim open one file at a time (no socket) → `-e helix`.
 
 ### Flags
 
-| Flag | Valores | Def. |
+| Flag | Values | Default |
 |---|---|---|
 | `-e`, `--editor` | `nvim` · `helix` · `micro` · `vim` | `nvim` |
-| `-a`, `--agent`  | cualquier comando (ver [Agentes](#agentes)) | `claude` |
+| `-a`, `--agent`  | any command (see [Agents](#agents)) | `claude` |
 | `-t`, `--theme`  | `dracula` · `catppuccin` · `tokyonight` · `gruvbox` · `nord` | — |
-| `--dry-run` | genera el layout y lo imprime (no lanza) | |
+| `--dry-run` | generate the layout and print it (don't launch) | |
 | `-l`, `--list` / `-h`, `--help` | | |
 
 ---
 
-## Temas
+## Themes
 
-Cambian **todo el stack a la vez** (zellij + ghostty + helix + micro + nvim):
+They change the **whole stack at once** (zellij + ghostty + helix + micro + nvim):
 
 ```sh
-divvy-theme nord          # solo cambia el tema
-divvy --theme nord        # cambia y lanza
+divvy-theme nord          # just change the theme
+divvy --theme nord        # change and launch
 ```
 
-Temas: `dracula` · `catppuccin` · `tokyonight` · `gruvbox` · `nord`.
+Themes: `dracula` · `catppuccin` · `tokyonight` · `gruvbox` · `nord`.
 
-> Tras cambiar de tema: **relanza divvy** (zellij/editores) y en **Ghostty** pulsa
-> `Cmd+Shift+R` para recargar el tema sin reiniciar.
+> After changing the theme: **relaunch divvy** (zellij/editors) and in **Ghostty** press
+> `Cmd+Shift+R` to reload the theme without restarting.
 
 ---
 
-## Agentes
+## Agents
 
-El panel derecho corre **cualquier comando** que le pases con `-a`, así que usas el agente que
-prefieras (y el que pagues). Recomendados:
+The right pane runs **any command** you pass with `-a`, so you can use whichever agent you
+prefer (and pay for). Suggested ones:
 
-| Agente | `-a` | Instalar (brew) |
+| Agent | `-a` | Install |
 |---|---|---|
 | Claude Code | `claude` | `npm i -g @anthropic-ai/claude-code` |
-| OpenAI Codex | `codex` | `brew install codex` |
-| Gemini CLI | `gemini` | `brew install gemini-cli` |
-| opencode | `opencode` | `brew install opencode` |
-| aider | `aider` | `brew install aider` |
+| OpenAI Codex | `codex` | `brew install --cask codex` · `npm i -g @openai/codex` |
+| Gemini CLI | `gemini` | `brew install gemini-cli` · `npm i -g @google/gemini-cli` |
+| opencode | `opencode` | `brew install opencode` · `npm i -g opencode-ai` |
+| aider | `aider` | `brew install aider` · `pipx install aider-chat` |
 | goose | `goose` | `brew install block-goose-cli` |
-| Antigravity | `agy` | (instalador oficial) |
+| Antigravity | `agy` | (official installer) |
 
 ```sh
 divvy -a codex          # OpenAI Codex
 divvy -a gemini         # Gemini
-divvy -a mi-agente      # cualquier comando tuyo
+divvy -a my-agent       # any command of yours
 ```
 
-Si el comando no está instalado, divvy te avisa y el panel mostrará el error (no rompe el resto).
+If the command isn't installed, divvy warns you and the pane shows the error (it doesn't break
+the rest).
 
-## Atajos (zellij)
+## Shortcuts (zellij)
 
-| Acción | Tecla |
+| Action | Key |
 |---|---|
-| Saltar a un panel concreto | `Alt` + `1` archivos · `2` editor · `3` agente · `4` terminal (recomendado) |
-| Moverte entre paneles | `Alt` + flechas · `Alt` + `h/j/k/l` |
-| Pantalla completa del panel | `Ctrl p` → `f` |
-| Nueva pestaña | `Ctrl t` → `n` · cambiar: `Ctrl t` → flechas |
-| Modo scroll (ver output viejo) | `Ctrl s` (sal con `Esc`) |
-| Redimensionar panel | `Ctrl n` → flechas |
-| Salir | `Ctrl q` |
+| Jump to a specific pane | `Alt` + `1` files · `2` editor · `3` agent · `4` terminal (recommended) |
+| Move between panes | `Alt` + arrows · `Alt` + `h/j/k/l` |
+| Fullscreen the pane | `Ctrl p` → `f` |
+| New tab | `Ctrl t` → `n` · switch: `Ctrl t` → arrows |
+| Scroll mode (see old output) | `Ctrl s` (exit with `Esc`) |
+| Resize pane | `Ctrl n` → arrows |
+| Quit | `Ctrl q` |
 
-En **yazi** (panel izquierdo): `↑/↓` navegar, `→` entrar, `←` subir, `Enter` abrir en el editor.
+In **yazi** (left pane): `↑/↓` navigate, `→` enter, `←` go up, `Enter` open in the editor.
 
 ---
 
-## Cómo funciona
+## How it works
 
-| Script | Rol |
+| Script | Role |
 |---|---|
-| `divvy` | Lee las flags → genera `.runtime/layout.kdl` → lanza zellij |
-| `divvy-edit` | Corre el editor central |
-| `divvy-open` | Lo que yazi llama al dar Enter (manda el archivo al editor) |
-| `divvy-theme` | Cambia el tema en todas las herramientas |
+| `divvy` | Reads the flags → generates `.runtime/layout.kdl` → launches zellij |
+| `divvy-edit` | Runs the center editor |
+| `divvy-open` | What yazi calls on Enter (sends the file to the editor) |
+| `divvy-theme` | Changes the theme across all tools |
 
-**Integración yazi → editor:**
-- **nvim**: arranca como servidor (`--listen`); yazi le envía archivos por socket → se abren
-  como buffers, en vivo. *La más fluida.* Incluye **LSP** (autocompletado, ir-a-definición,
-  diagnósticos vía mason) + treesitter + tema.
-- **helix / micro / vim**: no tienen socket; yazi manda la ruta por una FIFO. Abres un
-  archivo y lo editas; para abrir otro desde yazi, **cierra el actual** primero. (helix trae
-  LSP built-in.)
+**yazi → editor integration:**
+- **nvim**: starts as a server (`--listen`); yazi sends files over a socket → they open as
+  buffers, live. *The smoothest one.* Includes **LSP** (completion, go-to-definition,
+  diagnostics via mason) + treesitter + theme.
+- **helix / micro / vim**: no socket; yazi sends the path over a FIFO. You open a file and
+  edit it; to open another one from yazi, **close the current one** first. (helix ships with
+  built-in LSP.)
 
-Solo el **texto/código** va al editor; imágenes, PDF y video abren con la app del sistema.
-Los sockets/FIFO se nombran por sesión de zellij, así que puedes tener **varios divvy a la
-vez** sin que se pisen.
+Only **text/code** goes to the editor; images, PDFs, and video open with the system app.
+Sockets/FIFOs are named per zellij session, so you can run **several divvy windows at once**
+without them stepping on each other.
 
-### Atajos en nvim (editor por defecto)
+### Shortcuts in nvim (the default editor)
 
-| Acción | Tecla |
+| Action | Key |
 |---|---|
-| Pestaña siguiente / anterior | `Tab` / `Shift+Tab` |
-| Cerrar pestaña | `:q` o `<leader>x` (leader = espacio) — **no** cierra nvim |
-| Guardar y cerrar pestaña | `:wq` |
-| Salir de nvim del todo | `:qa` (o `:q!` para forzar) |
-| Ir a definición / referencias | `gd` / `gr` |
-| Documentación | `K` |
-| Renombrar / acción de código | `<leader>rn` / `<leader>ca` |
-| Saltar entre errores | `[d` / `]d` |
-| Autocompletado | `Ctrl-espacio` (acepta con `Ctrl-y`) |
+| Next / previous tab | `Tab` / `Shift+Tab` |
+| Close tab | `:q` or `<leader>x` (leader = space) — does **not** close nvim |
+| Save and close tab | `:wq` |
+| Quit nvim entirely | `:qa` (or `:q!` to force) |
+| Go to definition / references | `gd` / `gr` |
+| Documentation | `K` |
+| Rename / code action | `<leader>rn` / `<leader>ca` |
+| Jump between errors | `[d` / `]d` |
+| Completion | `Ctrl-space` (accept with `Ctrl-y`) |
 
-Configs (todas dentro del proyecto, no ensucian tu `~/.config`):
+Configs (all inside the project, they don't touch your `~/.config`):
 `.config/nvim/init.lua` · `helix/config.toml` · `micro/settings.json` · `vim/vimrc` · `yazi/yazi.toml`.
 
 ---
 
-## Portabilidad
+## Portability
 
-| SO | Estado |
+| OS | Status |
 |---|---|
 | macOS | ✅ |
-| Linux | ✅ (cambian instalador y ruta de symlinks; el script se adapta solo) |
-| Windows | ⚠️ solo vía **WSL2** (zellij/Ghostty no son nativos de Windows) |
+| Linux | ✅ (installer and symlink path change; the script adapts itself) |
+| Windows | ⚠️ only via **WSL2** (zellij/Ghostty aren't native to Windows) |
 
 ---
 
-## Problemas comunes
+## Common issues
 
-- **Colores raros:** tu terminal no tiene true color → usa Ghostty/WezTerm/Alacritty.
-- **`Alt`+flechas no mueven el foco:** en Apple Terminal activa "Usar Opción como Meta"; en
-  Ghostty ya viene activado (`macos-option-as-alt`).
-- **`Ctrl`+`1..4` no salta de panel:** la mayoría de terminales no mandan `Ctrl`+número de
-  forma única (`Ctrl+2`=NUL, `Ctrl+3`=ESC…). Usa **`Alt`+`1..4`**, que sí es fiable.
-- **Un archivo abierto desde yazi no aparece / yazi se "cuelga" al dar Enter:** era un prompt
-  modal de nvim (swap o "Press ENTER") que congelaba el servidor. Ya está mitigado; si vuelve,
-  ejecuta `divvy-clean` y relanza `divvy`.
-- **Iconos como cuadros:** instala una Nerd Font y selecciónala en tu terminal.
-- **El panel agente muestra error:** ese agente no está instalado (`opencode` no viene por
-  defecto).
-- **micro: `Ctrl+S`/`Ctrl+Q` no funcionan** (los captura zellij: search y quit). Antes de
-  editar pulsa `Ctrl+g` (bloquea zellij → todas las teclas van a micro), guarda/cierra
-  normal, y `Ctrl+g` otra vez para volver a navegar.
+- **Weird colors:** your terminal lacks true color → use Ghostty/WezTerm/Alacritty.
+- **`Alt`+arrows don't move focus:** in Apple Terminal enable "Use Option as Meta"; in Ghostty
+  it's already on (`macos-option-as-alt`).
+- **`Ctrl`+`1..4` doesn't jump panes:** most terminals don't send `Ctrl`+number uniquely
+  (`Ctrl+2`=NUL, `Ctrl+3`=ESC…). Use **`Alt`+`1..4`**, which is reliable.
+- **A file opened from yazi doesn't show up / yazi "hangs" on Enter:** this was a modal nvim
+  prompt (swap file or "Press ENTER") freezing the server. It's mitigated now; if it comes
+  back, run `divvy-clean` and relaunch `divvy`.
+- **Icons show as boxes:** install a Nerd Font and select it in your terminal.
+- **The agent pane shows an error:** that agent isn't installed (`opencode` isn't there by
+  default).
+- **micro: `Ctrl+S`/`Ctrl+Q` don't work** (zellij captures them: search and quit). Before
+  editing, press `Ctrl+g` (locks zellij → all keys go to micro), save/close normally, then
+  `Ctrl+g` again to navigate.
 
 ---
 
-## Licencia
+## License
 
 [MIT](LICENSE) © 2026 Jair Yara
