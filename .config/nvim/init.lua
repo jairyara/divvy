@@ -116,7 +116,13 @@ require("lazy").setup({
         "lua", "vim", "vimdoc", "bash", "json", "yaml", "toml",
         "javascript", "typescript", "tsx", "html", "css", "python", "markdown", "markdown_inline",
       }
-      pcall(function() require("nvim-treesitter").install(langs) end)
+      -- SOLO descargar/compilar parsers en modo headless (el pre-warm de install.sh).
+      -- En el panel editor EN VIVO (estrecho), los mensajes "Downloading tree-sitter-X..."
+      -- de install() envuelven en varias lineas -> wait_return ("Press ENTER") -> congela
+      -- el servidor y el RPC de yazi. En vivo solo activamos el resaltado de lo ya instalado.
+      if #vim.api.nvim_list_uis() == 0 then
+        pcall(function() require("nvim-treesitter").install(langs):wait(300000) end)
+      end
       -- activa el resaltado nativo por buffer (no crashea si falta el parser)
       vim.api.nvim_create_autocmd("FileType", {
         callback = function() pcall(vim.treesitter.start) end,

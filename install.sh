@@ -703,19 +703,35 @@ fi
 case " $SEL_EDITORS " in
     *" nvim "*)
         if [ "$DRY_RUN" = 0 ] && have nvim; then
-            # nvim-treesitter (main branch) needs the 'tree-sitter' CLI to build parsers.
+            # nvim-treesitter (main branch) COMPILES parsers, so it needs the 'tree-sitter'
+            # CLI and a C compiler. Pre-building them here keeps the live editor from ever
+            # downloading at runtime (which triggers a "Press ENTER" prompt that freezes it).
             if ! have tree-sitter; then
                 say "Installing the tree-sitter CLI (for nvim syntax highlighting)…"
                 if   have npm;   then npm install -g tree-sitter-cli || warn "install tree-sitter-cli by hand"
                 elif have cargo; then cargo install tree-sitter-cli || warn "install tree-sitter-cli by hand"
                 else warn "Install the 'tree-sitter' CLI (npm i -g tree-sitter-cli) for highlighting."; fi
             fi
+            if ! have cc && ! have gcc && ! have clang; then
+                say "Installing a C compiler (needed to build treesitter parsers)…"
+                case "$PM" in
+                    apt) pm_install build-essential || warn "install a C compiler (gcc) by hand" ;;
+                    *)   pm_install gcc || warn "install a C compiler (gcc/clang) by hand" ;;
+                esac
+            fi
+            TS_OK=1
+            { have tree-sitter && { have cc || have gcc || have clang; }; } || TS_OK=0
             say "Pre-installing nvim plugins (this can take a moment)…"
             XDG_CONFIG_HOME="$DIR/.config" XDG_DATA_HOME="$DIR/.local/share" XDG_STATE_HOME="$DIR/.local/state" \
                 nvim --headless "+Lazy! sync" +qa 2>/dev/null || warn "Open nvim once to finish plugin setup: nvim"
-            say "Building treesitter parsers…"
-            XDG_CONFIG_HOME="$DIR/.config" XDG_DATA_HOME="$DIR/.local/share" XDG_STATE_HOME="$DIR/.local/state" \
-                nvim --headless -c "lua require('nvim-treesitter').install({'lua','vim','vimdoc','bash','json','yaml','toml','javascript','typescript','tsx','html','css','python','markdown','markdown_inline'}):wait(300000)" -c 'qa' 2>/dev/null || warn "Parsers will build the first time you open nvim."
+            if [ "$TS_OK" = 1 ]; then
+                say "Building treesitter parsers…"
+                XDG_CONFIG_HOME="$DIR/.config" XDG_DATA_HOME="$DIR/.local/share" XDG_STATE_HOME="$DIR/.local/state" \
+                    nvim --headless -c "lua require('nvim-treesitter').install({'lua','vim','vimdoc','bash','json','yaml','toml','javascript','typescript','tsx','html','css','python','markdown','markdown_inline'}):wait(300000)" -c 'qa' 2>/dev/null || warn "Some parsers failed to build — highlighting may be limited."
+            else
+                warn "Skipping treesitter parsers (need the 'tree-sitter' CLI + a C compiler)."
+                info "Syntax highlighting will be basic; install them and re-run to enable it."
+            fi
         fi ;;
 esac
 
