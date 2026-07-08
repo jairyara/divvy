@@ -297,6 +297,17 @@ Las carpetas resumen el estado de lo que contienen. Cambia los colores/letras en
 | Renombrar / acción de código | `<leader>rn` / `<leader>ca` |
 | Saltar entre errores | `[d` / `]d` |
 | Autocompletado | `Ctrl-espacio` (acepta con `Ctrl-y`) |
+| Cambio git siguiente / anterior | `]h` / `[h` |
+| Previsualizar un cambio | `<leader>hp` |
+| **Revertir un cambio (hunk)** | `<leader>hr` |
+| Revertir todos los cambios del archivo | `<leader>hR` |
+| Quién cambió esta línea (blame) | `<leader>hb` |
+
+> **Cambios git en el editor:** las líneas modificadas/añadidas/borradas se marcan en el
+> gutter (con [gitsigns](https://github.com/lewis6991/gitsigns.nvim) en nvim), para revisar el
+> diff de un vistazo y **revertir un hunk** con `<leader>hr` — útil antes de commitear. **helix**
+> y **micro** también muestran el gutter de diff (nativo); revertir un hunk es solo de nvim.
+> (**vim** pelado no lo muestra — es el fallback mínimo.)
 
 Configs (todas dentro del proyecto, no ensucian tu `~/.config`):
 `.config/nvim/init.lua` · `helix/config.toml` · `micro/settings.json` · `vim/vimrc` ·
@@ -337,6 +348,12 @@ Configs (todas dentro del proyecto, no ensucian tu `~/.config`):
 - **micro: `Ctrl+S`/`Ctrl+Q` no funcionan** (los captura zellij: search y quit). Antes de
   editar pulsa `Ctrl+g` (bloquea zellij → todas las teclas van a micro), guarda/cierra
   normal, y `Ctrl+g` otra vez para volver a navegar.
+
+---
+
+## Registro de cambios
+
+Consulta [CHANGELOG.es.md](CHANGELOG.es.md) ([English](CHANGELOG.md)) para el historial de versiones.
 
 ---
 

@@ -21,6 +21,10 @@ y el proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 - **Tool windows** — oculta un panel y deja que el resto reflowee para reclamar el espacio,
   manteniendo su proceso vivo: `Alt+b` archivos · `Alt+a` agente · `Alt+t` terminal. Vuelve a
   mostrarlo con `Alt+Shift+B` / `Alt+Shift+A` / `Alt+Shift+T`.
+- **Cambios git en el editor** — las líneas modificadas/añadidas/borradas se marcan en el gutter
+  para revisar el diff de un vistazo. En nvim ([gitsigns](https://github.com/lewis6991/gitsigns.nvim))
+  navegas con `]h`/`[h`, previsualizas con `<leader>hp` y reviertes un hunk con `<leader>hr` (o todo
+  el archivo con `<leader>hR`). helix y micro muestran el gutter de diff de forma nativa.
 
 ### Cambiado
 - El panel del agente ahora se llama `agent` en el layout (antes tomaba el nombre del comando

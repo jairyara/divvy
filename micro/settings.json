@@ -1,5 +1,6 @@
 {
     "colorscheme": "one-dark",
+    "diffgutter": true,
     "tabsize": 2,
     "tabstospaces": true,
     "softwrap": false,

@@ -18,6 +18,11 @@ select = "underline"
 render = true
 character = "▏"
 
+# git gutter: show added/changed/deleted lines vs git in the gutter (native).
+# Navigate changes with ]g / [g. (Reverting a hunk isn't built into Helix.)
+[editor.gutters]
+layout = ["diagnostics", "spacer", "line-numbers", "spacer", "diff"]
+
 [editor.statusline]
 left = ["mode", "spinner", "file-name", "read-only-indicator", "file-modification-indicator"]
 right = ["diagnostics", "selections", "position", "file-encoding", "file-type"]

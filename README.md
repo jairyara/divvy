@@ -297,6 +297,17 @@ Directories bubble up the status of what's inside them. Tweak the colors/letters
 | Rename / code action | `<leader>rn` / `<leader>ca` |
 | Jump between errors | `[d` / `]d` |
 | Completion | `Ctrl-space` (accept with `Ctrl-y`) |
+| Next / previous git change | `]h` / `[h` |
+| Preview a change | `<leader>hp` |
+| **Revert a change (hunk)** | `<leader>hr` |
+| Revert all changes in the file | `<leader>hR` |
+| Who changed this line (blame) | `<leader>hb` |
+
+> **Git changes in the editor:** modified/added/deleted lines are marked in the gutter
+> (via [gitsigns](https://github.com/lewis6991/gitsigns.nvim) in nvim), so you can review a
+> diff at a glance and revert a hunk with `<leader>hr` — handy before committing. **helix**
+> and **micro** show the diff gutter too (built-in); reverting a hunk is nvim-only. (Plain
+> **vim** doesn't show it — it's the bare fallback.)
 
 Configs (all inside the project, they don't touch your `~/.config`):
 `.config/nvim/init.lua` · `helix/config.toml` · `micro/settings.json` · `vim/vimrc` ·
@@ -337,6 +348,12 @@ Configs (all inside the project, they don't touch your `~/.config`):
 - **micro: `Ctrl+S`/`Ctrl+Q` don't work** (zellij captures them: search and quit). Before
   editing, press `Ctrl+g` (locks zellij → all keys go to micro), save/close normally, then
   `Ctrl+g` again to navigate.
+
+---
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) ([Español](CHANGELOG.es.md)) for the version history.
 
 ---
 

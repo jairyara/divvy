@@ -131,6 +131,35 @@ require("lazy").setup({
   -- guías de indentación
   { "lukas-reineke/indent-blankline.nvim", main = "ibl", opts = {} },
 
+  -- git gutter: marca en la columna de signos las líneas añadidas/cambiadas/borradas
+  -- frente a git, para revisar de un vistazo y revertir (reset) por hunk o archivo.
+  { "lewis6991/gitsigns.nvim", config = function()
+      local gs = require("gitsigns")
+      gs.setup({
+        signs = {
+          add          = { text = "┃" },
+          change       = { text = "┃" },
+          delete       = { text = "▁" },
+          topdelete    = { text = "▔" },
+          changedelete = { text = "~" },
+          untracked    = { text = "┆" },
+        },
+        on_attach = function(bufnr)
+          local function map(k, fn, desc)
+            vim.keymap.set("n", k, fn, { buffer = bufnr, desc = desc })
+          end
+          map("]h", function() gs.nav_hunk("next") end, "Siguiente cambio (git)")
+          map("[h", function() gs.nav_hunk("prev") end, "Cambio anterior (git)")
+          map("<leader>hp", gs.preview_hunk,            "Previsualizar cambio")
+          map("<leader>hr", gs.reset_hunk,              "Revertir este cambio (hunk)")
+          map("<leader>hR", gs.reset_buffer,            "Revertir TODOS los cambios del archivo")
+          map("<leader>hs", gs.stage_hunk,              "Stage de este cambio")
+          map("<leader>hb", function() gs.blame_line({ full = true }) end, "Quién cambió esta línea")
+          map("<leader>ht", gs.toggle_deleted,          "Ver/ocultar líneas borradas")
+        end,
+      })
+    end },
+
   -- LSP: autocompletado, ir-a-definicion, diagnosticos
   { "saghen/blink.cmp", version = "1.*", opts = {
       keymap = { preset = "default" },        -- <C-space> abre, <C-y> acepta
