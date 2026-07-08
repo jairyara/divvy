@@ -112,7 +112,7 @@ layout {
                 args "-c" "DIVVY_EDITOR=$EDITOR_CHOICE divvy-edit"
             }
             pane size="33%" {
-                name "$AGENT_CHOICE"
+                name "agent"
                 command "$AGENT_CHOICE"
             }
         }

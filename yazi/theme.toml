@@ -1,0 +1,21 @@
+# theme.toml de yazi SOLO para divvy (se activa con YAZI_CONFIG_HOME).
+# Solo define los colores/símbolos del estado de git (plugin git.yazi); el resto
+# del tema lo hereda del tema por defecto de yazi. Usamos LETRAS en vez de glyphs
+# para que se lea bien con o sin Nerd Font, y colores intuitivos:
+#   ? nuevo (verde) · M modificado (amarillo) · A staged (verde) · D borrado (rojo)
+[git]
+untracked = { fg = "green", bold = true }
+added     = { fg = "green" }
+modified  = { fg = "yellow" }
+updated   = { fg = "red", bold = true }
+deleted   = { fg = "red", bold = true }
+ignored   = { fg = "darkgray" }
+
+untracked_sign = "? "
+added_sign     = "A "
+modified_sign  = "M "
+updated_sign   = "U "
+deleted_sign   = "D "
+ignored_sign   = ""
+clean_sign     = ""
+unknown_sign   = ""

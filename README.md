@@ -231,6 +231,9 @@ cargo install keifu                  # any platform
 |---|---|
 | Jump to a specific pane | `Alt` + `1` files · `2` editor · `3` agent · `4` terminal (recommended) |
 | **Git graph modal** | `Alt` + `g` — opens [keifu](#git-graph-modal-altg) floating; `q`/`Esc` closes it |
+| **Zen / maximize focused pane** | `Alt` + `z` — fullscreen the focused pane, hide the rest; `Alt` + `z` again restores |
+| **Hide a tool window** | `Alt` + `b` files · `a` agent · `t` terminal — the rest reflow; the hidden pane keeps running |
+| **Show it back** | `Alt` + `Shift` + `B`/`A`/`T` — embeds the hidden tool window back in place |
 | Move between panes | `Alt` + arrows · `Alt` + `h/j/k/l` |
 | Fullscreen the pane | `Ctrl p` → `f` |
 | New tab | `Ctrl t` → `n` · switch: `Ctrl t` → arrows |
@@ -264,6 +267,23 @@ Only **text/code** goes to the editor; images, PDFs, and video open with the sys
 Sockets/FIFOs are named per zellij session, so you can run **several divvy windows at once**
 without them stepping on each other.
 
+### Git status in yazi
+
+The file explorer shows each file's **git status** as a colored letter next to its name (via the
+official [`git.yazi`](https://github.com/yazi-rs/plugins/tree/main/git.yazi) plugin, bundled in
+`yazi/plugins/`):
+
+| Mark | Meaning | Color |
+|---|---|---|
+| `?` | new / untracked | green |
+| `A` | added (staged) | green |
+| `M` | modified | yellow |
+| `D` | deleted | red |
+| `U` | updated / conflict | red |
+
+Directories bubble up the status of what's inside them. Tweak the colors/letters in
+`yazi/theme.toml` (`[git]` section).
+
 ### Shortcuts in nvim (the default editor)
 
 | Action | Key |
@@ -279,7 +299,8 @@ without them stepping on each other.
 | Completion | `Ctrl-space` (accept with `Ctrl-y`) |
 
 Configs (all inside the project, they don't touch your `~/.config`):
-`.config/nvim/init.lua` · `helix/config.toml` · `micro/settings.json` · `vim/vimrc` · `yazi/yazi.toml`.
+`.config/nvim/init.lua` · `helix/config.toml` · `micro/settings.json` · `vim/vimrc` ·
+`yazi/{yazi.toml,init.lua,theme.toml}`.
 
 ---
 

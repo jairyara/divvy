@@ -231,6 +231,9 @@ cargo install keifu                  # cualquier plataforma
 |---|---|
 | Saltar a un panel concreto | `Alt` + `1` archivos · `2` editor · `3` agente · `4` terminal (recomendado) |
 | **Modal de git graph** | `Alt` + `g` — abre [keifu](#modal-de-git-graph-altg) flotante; `q`/`Esc` cierra |
+| **Zen / maximizar panel enfocado** | `Alt` + `z` — pantalla completa del enfocado, oculta el resto; `Alt` + `z` restaura |
+| **Ocultar un tool window** | `Alt` + `b` archivos · `a` agente · `t` terminal — el resto reflowea; el panel oculto sigue vivo |
+| **Volver a mostrarlo** | `Alt` + `Shift` + `B`/`A`/`T` — reincrusta el tool window oculto en su sitio |
 | Moverte entre paneles | `Alt` + flechas · `Alt` + `h/j/k/l` |
 | Pantalla completa del panel | `Ctrl p` → `f` |
 | Nueva pestaña | `Ctrl t` → `n` · cambiar: `Ctrl t` → flechas |
@@ -264,6 +267,23 @@ Solo el **texto/código** va al editor; imágenes, PDF y video abren con la app 
 Los sockets/FIFO se nombran por sesión de zellij, así que puedes tener **varios divvy a la
 vez** sin que se pisen.
 
+### Estado de git en yazi
+
+El explorador muestra el **estado de git** de cada archivo como una letra de color junto al
+nombre (con el plugin oficial [`git.yazi`](https://github.com/yazi-rs/plugins/tree/main/git.yazi),
+incluido en `yazi/plugins/`):
+
+| Marca | Significado | Color |
+|---|---|---|
+| `?` | nuevo / sin trackear | verde |
+| `A` | añadido (staged) | verde |
+| `M` | modificado | amarillo |
+| `D` | borrado | rojo |
+| `U` | actualizado / conflicto | rojo |
+
+Las carpetas resumen el estado de lo que contienen. Cambia los colores/letras en
+`yazi/theme.toml` (sección `[git]`).
+
 ### Atajos en nvim (editor por defecto)
 
 | Acción | Tecla |
@@ -279,7 +299,8 @@ vez** sin que se pisen.
 | Autocompletado | `Ctrl-espacio` (acepta con `Ctrl-y`) |
 
 Configs (todas dentro del proyecto, no ensucian tu `~/.config`):
-`.config/nvim/init.lua` · `helix/config.toml` · `micro/settings.json` · `vim/vimrc` · `yazi/yazi.toml`.
+`.config/nvim/init.lua` · `helix/config.toml` · `micro/settings.json` · `vim/vimrc` ·
+`yazi/{yazi.toml,init.lua,theme.toml}`.
 
 ---
 

@@ -14,6 +14,18 @@ edit = [
   { run = 'divvy-open "$@"', block = false, desc = "Abrir en el editor de divvy" },
 ]
 
+# Plugin git.yazi: calcula el estado de git de los archivos visibles y se lo pasa
+# al linemode (ver init.lua + theme.toml). Sin campo `id` porque yazi > v26.1.22.
+[[plugin.prepend_fetchers]]
+url   = "*"
+run   = "git"
+group = "git"
+
+[[plugin.prepend_fetchers]]
+url   = "*/"
+run   = "git"
+group = "git"
+
 # Solo el texto/codigo va al editor; imagenes, PDF, video, etc. usan la app del
 # sistema (open/xdg-open) gracias a las reglas por defecto de yazi.
 [open]
