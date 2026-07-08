@@ -1,0 +1,21 @@
+#!/bin/sh
+# divvy-git — opens keifu (a git commit-graph TUI) as a floating "modal" pane.
+# Bound to Alt+g in divvy's zellij config. Quit keifu with q or Esc to close it.
+# keifu runs in the pane's cwd (the repo you launched divvy from), so it shows
+# that repository's history. keifu is optional: if it isn't installed we explain
+# how to get it and keep the pane open until you press Enter.
+
+if command -v keifu >/dev/null 2>&1; then
+    exec keifu "$@"
+fi
+
+# Not installed — the floating pane would close instantly with close_on_exit, so
+# print how to get it and wait for a key press.
+printf '\n  keifu is not installed.\n\n'
+printf '  keifu is the git commit-graph viewer divvy opens with Alt+g.\n'
+printf '  Install it with any of:\n'
+printf '    macOS:  brew install trasta298/tap/keifu\n'
+printf '    cargo:  cargo install keifu\n'
+printf "    or re-run divvy's install.sh (it fetches a prebuilt binary).\n\n"
+printf '  Press Enter to close…'
+read _ 2>/dev/null || true

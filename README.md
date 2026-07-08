@@ -90,6 +90,7 @@ BINDIR=/usr/local/bin ./install.sh     # change where the symlinks go
 | `--editors "..."` | list of editors (nvim helix micro vim) |
 | `--terminals "..."` | terminals to install/theme (ghostty wezterm kitty alacritty) |
 | `--agents "..."` | agents to install (codex opencode aider goose agy) |
+| `--keifu` / `--no-keifu` | install (or skip) keifu, the `Alt+g` git graph modal (on by default) |
 | `--yes` | no confirmation · `--dry-run` simulates |
 
 ---
@@ -202,11 +203,34 @@ divvy -a my-agent       # any command of yours
 If the command isn't installed, divvy warns you and the pane shows the error (it doesn't break
 the rest).
 
+## Git graph modal (Alt+g)
+
+Press **`Alt`+`g`** anywhere in divvy to pop open [**keifu**](https://github.com/trasta298/keifu)
+— a git commit-graph TUI — in a **floating pane**, like a modal you open to consult history and
+then dismiss. It runs in the repo you launched divvy from, so you see *that* project's tree
+without leaving your editor. Quit keifu with **`q`** or **`Esc`** and the floating pane closes.
+
+keifu is **optional** (the installer asks; on by default). If it isn't installed, `Alt+g` shows
+a short note on how to get it. Install it any time:
+
+```sh
+brew install trasta298/tap/keifu     # macOS
+cargo install keifu                  # any platform
+./install.sh --keifu                 # or re-run the installer (fetches a prebuilt binary)
+```
+
+> keifu draws the graph with Unicode (no image protocol), so it works in the floating pane in any
+> terminal. It's a *viewer* — it isn't tied to `divvy-theme`; branch colors are keifu's own.
+> Tip: while it's open, zellij's `Alt`+`f` hides/shows floating panes without closing keifu.
+
+---
+
 ## Shortcuts (zellij)
 
 | Action | Key |
 |---|---|
 | Jump to a specific pane | `Alt` + `1` files · `2` editor · `3` agent · `4` terminal (recommended) |
+| **Git graph modal** | `Alt` + `g` — opens [keifu](#git-graph-modal-altg) floating; `q`/`Esc` closes it |
 | Move between panes | `Alt` + arrows · `Alt` + `h/j/k/l` |
 | Fullscreen the pane | `Ctrl p` → `f` |
 | New tab | `Ctrl t` → `n` · switch: `Ctrl t` → arrows |
@@ -226,6 +250,7 @@ In **yazi** (left pane): `↑/↓` navigate, `→` enter, `←` go up, `Enter` o
 | `divvy-edit` | Runs the center editor |
 | `divvy-open` | What yazi calls on Enter (sends the file to the editor) |
 | `divvy-theme` | Changes the theme across all tools |
+| `divvy-git` | Launches keifu (the `Alt+g` git graph modal); tells you how to install it if missing |
 
 **yazi → editor integration:**
 - **nvim**: starts as a server (`--listen`); yazi sends files over a socket → they open as

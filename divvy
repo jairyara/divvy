@@ -37,6 +37,10 @@ Options:
       --dry-run                          Generate the layout and print it (don't launch)
   -h, --help                             This help
 
+Inside divvy:
+  Alt+g   open a git commit-graph modal (keifu) in a floating pane; q/Esc closes it
+  Alt+1..4 jump to a pane (files/editor/agent/terminal)
+
 Examples:
   divvy
   divvy --editor helix --agent opencode

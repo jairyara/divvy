@@ -90,6 +90,7 @@ BINDIR=/usr/local/bin ./install.sh     # cambia dónde van los symlinks
 | `--editors "..."` | lista de editores (nvim helix micro vim) |
 | `--terminals "..."` | terminales a instalar/tematizar (ghostty wezterm kitty alacritty) |
 | `--agents "..."` | agentes a instalar (codex opencode aider goose agy) |
+| `--keifu` / `--no-keifu` | instala (u omite) keifu, el modal de git graph de `Alt+g` (activo por defecto) |
 | `--yes` | sin confirmación · `--dry-run` simula |
 
 ---
@@ -201,11 +202,35 @@ divvy -a mi-agente      # cualquier comando tuyo
 
 Si el comando no está instalado, divvy te avisa y el panel mostrará el error (no rompe el resto).
 
+## Modal de git graph (Alt+g)
+
+Pulsa **`Alt`+`g`** en cualquier parte de divvy para abrir [**keifu**](https://github.com/trasta298/keifu)
+— un TUI del grafo de commits — en un **panel flotante**, como un modal que abres para consultar el
+historial y luego cierras. Corre en el repo desde donde lanzaste divvy, así que ves el árbol de *ese*
+proyecto sin salir del editor. Sales de keifu con **`q`** o **`Esc`** y el flotante se cierra.
+
+keifu es **opcional** (el instalador lo pregunta; activo por defecto). Si no está instalado, `Alt+g`
+te muestra una nota de cómo obtenerlo. Instálalo cuando quieras:
+
+```sh
+brew install trasta298/tap/keifu     # macOS
+cargo install keifu                  # cualquier plataforma
+./install.sh --keifu                 # o relanza el instalador (baja un binario prebuilt)
+```
+
+> keifu dibuja el grafo con Unicode (sin protocolo de imágenes), así que funciona en el flotante en
+> cualquier terminal. Es un *visor* — no se integra con `divvy-theme`; los colores de las ramas son
+> propios de keifu. Tip: mientras está abierto, `Alt`+`f` de zellij oculta/muestra los flotantes sin
+> cerrar keifu.
+
+---
+
 ## Atajos (zellij)
 
 | Acción | Tecla |
 |---|---|
 | Saltar a un panel concreto | `Alt` + `1` archivos · `2` editor · `3` agente · `4` terminal (recomendado) |
+| **Modal de git graph** | `Alt` + `g` — abre [keifu](#modal-de-git-graph-altg) flotante; `q`/`Esc` cierra |
 | Moverte entre paneles | `Alt` + flechas · `Alt` + `h/j/k/l` |
 | Pantalla completa del panel | `Ctrl p` → `f` |
 | Nueva pestaña | `Ctrl t` → `n` · cambiar: `Ctrl t` → flechas |
@@ -225,6 +250,7 @@ En **yazi** (panel izquierdo): `↑/↓` navegar, `→` entrar, `←` subir, `En
 | `divvy-edit` | Corre el editor central |
 | `divvy-open` | Lo que yazi llama al dar Enter (manda el archivo al editor) |
 | `divvy-theme` | Cambia el tema en todas las herramientas |
+| `divvy-git` | Lanza keifu (el modal de git graph de `Alt+g`); si falta, te dice cómo instalarlo |
 
 **Integración yazi → editor:**
 - **nvim**: arranca como servidor (`--listen`); yazi le envía archivos por socket → se abren

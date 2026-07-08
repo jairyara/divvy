@@ -56,6 +56,7 @@ ART
 SEL_EDITORS="nvim"           # nvim helix micro vim (nvim = default)
 SEL_TERMS=""                 # ghostty wezterm kitty alacritty (optional; none by default)
 SEL_AGENTS=""                # codex opencode aider goose agy
+WANT_KEIFU=1                 # keifu = optional git commit-graph modal (Alt+g)
 ASSUME_YES=0
 DRY_RUN=0
 INTERACTIVE=1
@@ -65,12 +66,14 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --all)      SEL_EDITORS="nvim helix micro vim"; SEL_TERMS="ghostty wezterm kitty alacritty";
                     SEL_AGENTS="claude codex opencode aider goose agy"; INTERACTIVE=0; shift ;;
-        --minimal)  SEL_EDITORS="nvim"; SEL_TERMS=""; SEL_AGENTS=""; INTERACTIVE=0; shift ;;
+        --minimal)  SEL_EDITORS="nvim"; SEL_TERMS=""; SEL_AGENTS=""; WANT_KEIFU=0; INTERACTIVE=0; shift ;;
         --editors)   SEL_EDITORS="$2"; INTERACTIVE=0; shift 2 ;;
         --terminals) SEL_TERMS="$2"; INTERACTIVE=0; shift 2 ;;
         --agents)    SEL_AGENTS="$2"; INTERACTIVE=0; shift 2 ;;
         --no-ghostty) SEL_TERMS="$(printf '%s' "$SEL_TERMS" | sed 's/ghostty//')"; INTERACTIVE=0; shift ;;
         --ghostty)    case " $SEL_TERMS " in *" ghostty "*) ;; *) SEL_TERMS="ghostty $SEL_TERMS" ;; esac; INTERACTIVE=0; shift ;;
+        --keifu)      WANT_KEIFU=1; INTERACTIVE=0; shift ;;
+        --no-keifu)   WANT_KEIFU=0; INTERACTIVE=0; shift ;;
         --no-font|--font) warn "Nerd Font is now a manual step ($1 ignored)"; shift ;;
         --yes|-y)     ASSUME_YES=1; INTERACTIVE=0; shift ;;
         --dry-run)    DRY_RUN=1; shift ;;
@@ -352,6 +355,27 @@ install_micro() {
 
 install_vim() { pm_install vim; }
 
+# keifu — git commit-graph TUI, opened as a floating modal with Alt+g. Optional.
+# Prebuilt binaries exist for mac + linux, but the asset name embeds the version,
+# so resolve the URL via the API (gh_asset) with the API-less redirect as fallback
+# (same approach as helix). Falls back to cargo only if downloads fail.
+install_keifu() {
+    case "$PM" in brew) brew install trasta298/tap/keifu && return 0 ;; esac
+    if   [ "$OS" = Darwin ];   then _triple="$ARCH-apple-darwin"
+    elif [ "$ARCH" = x86_64 ]; then _triple="x86_64-unknown-linux-musl"  # musl = most portable
+    else _triple="$ARCH-unknown-linux-gnu"                                # arm64 linux: gnu only
+    fi
+    _u=$(gh_asset trasta298/keifu "$_triple.tar.gz")
+    if [ -z "$_u" ]; then
+        _tag=$(gh_latest_tag trasta298/keifu)
+        [ -n "$_tag" ] && _u="$GH/trasta298/keifu/releases/download/$_tag/keifu-$_tag-$_triple.tar.gz"
+    fi
+    [ -n "$_u" ] && dl_install "$_u" tgz keifu && return 0
+    have cargo && { say "Building keifu from source (cargo)…"; cargo install keifu && return 0; }
+    warn "keifu: couldn't install automatically — try 'brew install trasta298/tap/keifu' or 'cargo install keifu'"
+    return 1
+}
+
 install_ghostty() {
     # Methods per https://ghostty.org/docs/install/binary
     # Official / distro-maintained packages first:
@@ -492,6 +516,9 @@ if [ "$INTERACTIVE" = 1 ]; then
     echo "AI agents — the right-hand pane. claude is divvy's default; 'agy' is Google Antigravity."
     multiselect "AI agents  —  space to toggle · ↑/↓ to move · Enter to confirm" \
         SEL_AGENTS "claude codex opencode aider goose agy" "claude"
+    echo
+    echo "keifu — optional git commit-graph viewer, opened as a floating modal inside divvy (Alt+g)."
+    ask_yn "Install keifu? (git graph modal, Alt+g)" y && WANT_KEIFU=1 || WANT_KEIFU=0
 fi
 
 # ─────────────── summary ───────────────
@@ -501,6 +528,7 @@ echo "  editors:   $SEL_EDITORS"
 echo "  terminals: ${SEL_TERMS:-(none — use your current terminal)}"
 echo "  font:      manual (Nerd Font — see the note at the end)"
 echo "  agents:    ${SEL_AGENTS:-(none)}"
+echo "  keifu:     $([ "$WANT_KEIFU" = 1 ] && echo 'yes (git graph modal, Alt+g)' || echo no)"
 echo "  symlinks:  $BINDIR"
 echo "  system:    $OS / $ARCH"
 echo "  manager:   $PM"
@@ -568,13 +596,19 @@ if [ -n "$SEL_AGENTS" ]; then
     done
 fi
 
+# ─────────────── install: keifu (optional git graph modal) ───────────────
+if [ "$WANT_KEIFU" = 1 ]; then
+    hdr "Installing keifu (git commit-graph modal, Alt+g)…"
+    ensure keifu install_keifu "keifu (git graph)"
+fi
+
 # ─────────────── symlinks ───────────────
 hdr "Creating symlinks in $BINDIR…"
 if [ "$DRY_RUN" = 1 ]; then
-    info "[dry-run] divvy divvy-edit divvy-open divvy-theme divvy-clean -> $BINDIR"
+    info "[dry-run] divvy divvy-edit divvy-open divvy-theme divvy-clean divvy-git -> $BINDIR"
 else
     mkdir -p "$BINDIR"
-    for s in divvy divvy-edit divvy-open divvy-theme divvy-clean; do
+    for s in divvy divvy-edit divvy-open divvy-theme divvy-clean divvy-git; do
         chmod +x "$DIR/$s"; ln -sf "$DIR/$s" "$BINDIR/$s"
     done
     # Make sure BINDIR is on PATH for FUTURE shells — always ensure the line is in the
@@ -617,6 +651,8 @@ keybinds {
         bind "Ctrl 2" "Alt 2" { MoveFocus "up"; MoveFocus "left"; MoveFocus "left"; MoveFocus "right"; } // editor
         bind "Ctrl 3" "Alt 3" { MoveFocus "up"; MoveFocus "right"; MoveFocus "right"; }                  // agent
         bind "Ctrl 4" "Alt 4" { MoveFocus "down"; MoveFocus "down"; }                                    // terminal
+        // Alt+g: open keifu (git commit-graph) as a floating modal; q/Esc closes it.
+        bind "Alt g" { Run "divvy-git" { floating true; close_on_exit true; name "git"; x "5%"; y "7%"; width "90%"; height "85%"; }; }
     }
 }
 EOF
