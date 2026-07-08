@@ -232,8 +232,6 @@ cargo install keifu                  # cualquier plataforma
 | Saltar a un panel concreto | `Alt` + `1` archivos · `2` editor · `3` agente · `4` terminal (recomendado) |
 | **Modal de git graph** | `Alt` + `g` — abre [keifu](#modal-de-git-graph-altg) flotante; `q`/`Esc` cierra |
 | **Zen / maximizar panel enfocado** | `Alt` + `z` — pantalla completa del enfocado, oculta el resto; `Alt` + `z` restaura |
-| **Ocultar un tool window** | `Alt` + `b` archivos · `a` agente · `t` terminal — el resto reflowea; el panel oculto sigue vivo |
-| **Volver a mostrarlo** | `Alt` + `Shift` + `B`/`A`/`T` — reincrusta el tool window oculto en su sitio |
 | Moverte entre paneles | `Alt` + flechas · `Alt` + `h/j/k/l` |
 | Pantalla completa del panel | `Ctrl p` → `f` |
 | Nueva pestaña | `Ctrl t` → `n` · cambiar: `Ctrl t` → flechas |

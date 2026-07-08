@@ -17,10 +17,7 @@ y el proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
   de color (`?` nuevo · `A` staged · `M` modificado · `D` borrado · `U` conflicto), mediante el
   plugin incluido [`git.yazi`](https://github.com/yazi-rs/plugins/tree/main/git.yazi).
 - **Modo zen (`Alt+z`)** — pantalla completa del panel enfocado ocultando el resto; púlsalo de
-  nuevo para restaurar el layout.
-- **Tool windows** — oculta un panel y deja que el resto reflowee para reclamar el espacio,
-  manteniendo su proceso vivo: `Alt+b` archivos · `Alt+a` agente · `Alt+t` terminal. Vuelve a
-  mostrarlo con `Alt+Shift+B` / `Alt+Shift+A` / `Alt+Shift+T`.
+  nuevo para restaurar el layout. El modo foco de divvy.
 - **Cambios git en el editor** — las líneas modificadas/añadidas/borradas se marcan en el gutter
   para revisar el diff de un vistazo. En nvim ([gitsigns](https://github.com/lewis6991/gitsigns.nvim))
   navegas con `]h`/`[h`, previsualizas con `<leader>hp` y reviertes un hunk con `<leader>hr` (o todo
@@ -28,7 +25,7 @@ y el proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 - El panel del agente ahora se llama `agent` en el layout (antes tomaba el nombre del comando
-  del agente, p. ej. `claude`), para poder targetearlo desde los atajos de tool windows.
+  del agente, p. ej. `claude`), para tener una etiqueta estable e independiente del agente.
 
 ## [1.0.0] - 2026-06-25
 

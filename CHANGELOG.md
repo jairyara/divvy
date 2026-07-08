@@ -17,10 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   letter (`?` new · `A` staged · `M` modified · `D` deleted · `U` conflict), via the
   bundled [`git.yazi`](https://github.com/yazi-rs/plugins/tree/main/git.yazi) plugin.
 - **Zen mode (`Alt+z`)** — fullscreen the focused pane and hide the rest; press again to
-  restore the layout.
-- **Tool windows** — hide a pane and let the rest reflow to reclaim the space, keeping its
-  process alive: `Alt+b` files · `Alt+a` agent · `Alt+t` terminal. Bring it back with
-  `Alt+Shift+B` / `Alt+Shift+A` / `Alt+Shift+T`.
+  restore the layout. divvy's focus mode.
 - **Git changes in the editor** — modified/added/deleted lines are marked in the gutter so you
   can review a diff at a glance. In nvim ([gitsigns](https://github.com/lewis6991/gitsigns.nvim))
   navigate with `]h`/`[h`, preview with `<leader>hp`, and revert a hunk with `<leader>hr` (or the
@@ -28,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - The agent pane is now named `agent` in the layout (previously it took the agent command's
-  name, e.g. `claude`), so it can be targeted by the tool-window shortcuts.
+  name, e.g. `claude`), for a stable, agent-agnostic label.
 
 ## [1.0.0] - 2026-06-25
 

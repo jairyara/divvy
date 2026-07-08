@@ -232,8 +232,6 @@ cargo install keifu                  # any platform
 | Jump to a specific pane | `Alt` + `1` files · `2` editor · `3` agent · `4` terminal (recommended) |
 | **Git graph modal** | `Alt` + `g` — opens [keifu](#git-graph-modal-altg) floating; `q`/`Esc` closes it |
 | **Zen / maximize focused pane** | `Alt` + `z` — fullscreen the focused pane, hide the rest; `Alt` + `z` again restores |
-| **Hide a tool window** | `Alt` + `b` files · `a` agent · `t` terminal — the rest reflow; the hidden pane keeps running |
-| **Show it back** | `Alt` + `Shift` + `B`/`A`/`T` — embeds the hidden tool window back in place |
 | Move between panes | `Alt` + arrows · `Alt` + `h/j/k/l` |
 | Fullscreen the pane | `Ctrl p` → `f` |
 | New tab | `Ctrl t` → `n` · switch: `Ctrl t` → arrows |

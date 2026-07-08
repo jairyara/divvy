@@ -55,29 +55,12 @@ keybinds {
             }
         }
         //
-        // --- Tool windows: hide/show a pane like a JetBrains tool window --------
-        // Alt+z zen-maximizes the FOCUSED pane (hide the rest; toggle back) — native.
-        //
-        // Per tool window, TWO keys (pure keybind actions, so they run in your client
-        // where focus is reliable — a CLI script isn't):
-        //   Alt+<key>        HIDE:  focus that pane (directionally, like Alt+1..4),
-        //                          float it OUT so the rest reflow to fill, then hide
-        //                          the floating layer. Its process keeps running.
-        //   Alt+Shift+<key>  SHOW:  reveal the floating layer and embed the pane back
-        //                          in place. (All three SHOW binds do the same thing;
-        //                          they restore whichever tool window is hidden.)
-        // Direction sequences mirror the Alt+1..4 nav above. Note: pressing a SHOW key
-        // with nothing hidden opens a stray floating pane (zellij behavior) — just
-        // press it again / close it.
+        // --- Zen / focus -------------------------------------------------------
+        // Alt+z maximizes the FOCUSED pane (hide the rest to fill the screen) and
+        // toggles back. Native + reliable. This is divvy's focus mode: put the
+        // cursor in the editor and Alt+z to code full-screen, Alt+z again to bring
+        // the whole layout back. (Per-pane hide/show and swap-layout "views" were
+        // both tried but hit real zellij 0.44 limits — see the notes in the repo.)
         bind "Alt z" { ToggleFocusFullscreen; }
-        // files (top-left)
-        bind "Alt b" { MoveFocus "Up"; MoveFocus "Left"; MoveFocus "Left"; TogglePaneEmbedOrFloating; ToggleFloatingPanes; }
-        bind "Alt B" { ToggleFloatingPanes; TogglePaneEmbedOrFloating; }
-        // agent (top-right)
-        bind "Alt a" { MoveFocus "Up"; MoveFocus "Right"; MoveFocus "Right"; TogglePaneEmbedOrFloating; ToggleFloatingPanes; }
-        bind "Alt A" { ToggleFloatingPanes; TogglePaneEmbedOrFloating; }
-        // terminal (bottom)
-        bind "Alt t" { MoveFocus "Down"; TogglePaneEmbedOrFloating; ToggleFloatingPanes; }
-        bind "Alt T" { ToggleFloatingPanes; TogglePaneEmbedOrFloating; }
     }
 }

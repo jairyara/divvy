@@ -653,16 +653,8 @@ keybinds {
         bind "Ctrl 4" "Alt 4" { MoveFocus "down"; MoveFocus "down"; }                                    // terminal
         // Alt+g: open keifu (git commit-graph) as a floating modal; q/Esc closes it.
         bind "Alt g" { Run "divvy-git" { floating true; close_on_exit true; name "git"; x "5%"; y "7%"; width "90%"; height "85%"; }; }
-        // Tool windows: Alt+z zen-maximizes the focused pane. Per tool window, Alt+<k>
-        // HIDES it (float it out so the rest reflow, then hide the floating layer) and
-        // Alt+Shift+<k> SHOWS it back. Pure keybind actions = reliable focus.
+        // Zen / focus: Alt+z maximizes the focused pane (hide the rest) and toggles back.
         bind "Alt z" { ToggleFocusFullscreen; }
-        bind "Alt b" { MoveFocus "up"; MoveFocus "left"; MoveFocus "left"; TogglePaneEmbedOrFloating; ToggleFloatingPanes; }
-        bind "Alt B" { ToggleFloatingPanes; TogglePaneEmbedOrFloating; }
-        bind "Alt a" { MoveFocus "up"; MoveFocus "right"; MoveFocus "right"; TogglePaneEmbedOrFloating; ToggleFloatingPanes; }
-        bind "Alt A" { ToggleFloatingPanes; TogglePaneEmbedOrFloating; }
-        bind "Alt t" { MoveFocus "down"; MoveFocus "down"; TogglePaneEmbedOrFloating; ToggleFloatingPanes; }
-        bind "Alt T" { ToggleFloatingPanes; TogglePaneEmbedOrFloating; }
     }
 }
 EOF
