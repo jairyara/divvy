@@ -304,8 +304,8 @@ Las carpetas resumen el estado de lo que contienen. Cambia los colores/letras en
 > **Cambios git en el editor:** las líneas modificadas/añadidas/borradas se marcan en el
 > gutter (con [gitsigns](https://github.com/lewis6991/gitsigns.nvim) en nvim), para revisar el
 > diff de un vistazo y **revertir un hunk** con `<leader>hr` — útil antes de commitear. **helix**
-> y **micro** también muestran el gutter de diff (nativo); revertir un hunk es solo de nvim.
-> (**vim** pelado no lo muestra — es el fallback mínimo.)
+> y **micro** también muestran el gutter de diff (nativo), y **vim** lo tiene vía un pequeño
+> script nativo de `sign` (sin plugins). Revertir un hunk es solo de nvim.
 
 Configs (todas dentro del proyecto, no ensucian tu `~/.config`):
 `.config/nvim/init.lua` · `helix/config.toml` · `micro/settings.json` · `vim/vimrc` ·

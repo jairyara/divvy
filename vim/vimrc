@@ -14,3 +14,48 @@ if has('termguicolors')
   set termguicolors
 endif
 silent! colorscheme habamax
+
+" git gutter nativo (sin plugins): marca en la columna de signos las lineas
+" anadidas/cambiadas/borradas frente a git, igual que nvim/helix/micro. Diffea
+" el archivo GUARDADO contra el indice/HEAD, asi que se refresca al abrir y al
+" guardar (:w). vim puro no diffea el buffer sin guardar, coherente con la 'M'
+" que ya muestra yazi (cambios en disco).
+set signcolumn=yes
+if executable('git')
+  sign define DivvyAdd    text=┃ texthl=diffAdded
+  sign define DivvyChange text=┃ texthl=diffChanged
+  sign define DivvyDelete text=▁ texthl=diffRemoved
+
+  function! s:DivvyGitSigns() abort
+    let l:file = expand('%:p')
+    if empty(l:file) || !filereadable(l:file) | return | endif
+    let l:dir = expand('%:p:h')
+    call system('git -C ' . shellescape(l:dir) . ' rev-parse --is-inside-work-tree')
+    if v:shell_error | return | endif
+    let l:buf = bufnr('%')
+    call sign_unplace('divvy', {'buffer': l:buf})
+    let l:diff = systemlist('git -C ' . shellescape(l:dir)
+          \ . ' --no-optional-locks diff --no-color -U0 -- ' . shellescape(l:file))
+    for l:line in l:diff
+      let l:m = matchlist(l:line, '^@@ -\d\+\%(,\(\d*\)\)\? +\(\d\+\)\%(,\(\d*\)\)\? @@')
+      if empty(l:m) | continue | endif
+      let l:old = l:m[1] ==# '' ? 1 : str2nr(l:m[1])
+      let l:new = str2nr(l:m[2])
+      let l:cnt = l:m[3] ==# '' ? 1 : str2nr(l:m[3])
+      if l:cnt == 0
+        " borrado puro: marca la linea siguiente en el archivo nuevo
+        call sign_place(0, 'divvy', 'DivvyDelete', l:buf, {'lnum': max([l:new, 1])})
+      else
+        let l:name = l:old == 0 ? 'DivvyAdd' : 'DivvyChange'
+        for l:i in range(l:cnt)
+          call sign_place(0, 'divvy', l:name, l:buf, {'lnum': l:new + l:i})
+        endfor
+      endif
+    endfor
+  endfunction
+
+  augroup DivvyGitSigns
+    autocmd!
+    autocmd BufReadPost,BufWritePost * call s:DivvyGitSigns()
+  augroup END
+endif

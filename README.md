@@ -304,8 +304,8 @@ Directories bubble up the status of what's inside them. Tweak the colors/letters
 > **Git changes in the editor:** modified/added/deleted lines are marked in the gutter
 > (via [gitsigns](https://github.com/lewis6991/gitsigns.nvim) in nvim), so you can review a
 > diff at a glance and revert a hunk with `<leader>hr` — handy before committing. **helix**
-> and **micro** show the diff gutter too (built-in); reverting a hunk is nvim-only. (Plain
-> **vim** doesn't show it — it's the bare fallback.)
+> and **micro** show the diff gutter too (built-in), and **vim** gets it via a small
+> native `sign` script (no plugins). Reverting a hunk is nvim-only.
 
 Configs (all inside the project, they don't touch your `~/.config`):
 `.config/nvim/init.lua` · `helix/config.toml` · `micro/settings.json` · `vim/vimrc` ·

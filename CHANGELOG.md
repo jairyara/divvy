@@ -21,7 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Git changes in the editor** — modified/added/deleted lines are marked in the gutter so you
   can review a diff at a glance. In nvim ([gitsigns](https://github.com/lewis6991/gitsigns.nvim))
   navigate with `]h`/`[h`, preview with `<leader>hp`, and revert a hunk with `<leader>hr` (or the
-  whole file with `<leader>hR`). helix and micro show the diff gutter natively.
+  whole file with `<leader>hR`). helix and micro show the diff gutter natively, and vim gets it
+  via a small native `sign` script (no plugins).
 
 ### Changed
 - The agent pane is now named `agent` in the layout (previously it took the agent command's
