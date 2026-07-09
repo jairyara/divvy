@@ -650,7 +650,7 @@ keybinds {
         bind "Ctrl 1" "Alt 1" { MoveFocus "up"; MoveFocus "left"; MoveFocus "left"; }                    // files
         bind "Ctrl 2" "Alt 2" { MoveFocus "up"; MoveFocus "left"; MoveFocus "left"; MoveFocus "right"; } // editor
         bind "Ctrl 3" "Alt 3" { MoveFocus "up"; MoveFocus "right"; MoveFocus "right"; }                  // agent
-        bind "Ctrl 4" "Alt 4" { MoveFocus "down"; MoveFocus "down"; }                                    // terminal
+        bind "Ctrl 4" "Alt 4" "Alt t" { MoveFocus "down"; }                                              // terminal (Alt+t: alterno robusto en Ubuntu)
         // Alt+g: open keifu (git commit-graph) as a floating modal; q/Esc closes it.
         bind "Alt g" { Run "divvy-git" { floating true; close_on_exit true; name "git"; x "5%"; y "7%"; width "90%"; height "85%"; }; }
         // Zen / focus: Alt+z maximizes the focused pane (hide the rest) and toggles back.

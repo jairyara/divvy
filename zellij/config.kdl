@@ -40,7 +40,10 @@ keybinds {
         bind "Alt 1" "Ctrl 1" { MoveFocus "Up"; MoveFocus "Left"; MoveFocus "Left"; }
         bind "Alt 2" "Ctrl 2" { MoveFocus "Up"; MoveFocus "Left"; MoveFocus "Left"; MoveFocus "Right"; }
         bind "Alt 3" "Ctrl 3" { MoveFocus "Up"; MoveFocus "Right"; MoveFocus "Right"; }
-        bind "Alt 4" "Ctrl 4" { MoveFocus "Down"; }
+        // Alt+t es un alterno robusto: en Ubuntu algun atajo del terminal/WM se
+        // come el Alt+4 (mientras Alt+1..3 pasan). 't' de terminal, casi nunca
+        // esta ligado y llega limpio a zellij.
+        bind "Alt 4" "Ctrl 4" "Alt t" { MoveFocus "Down"; }
         bind "Alt g" {
             Run "divvy-git" {
                 floating true
